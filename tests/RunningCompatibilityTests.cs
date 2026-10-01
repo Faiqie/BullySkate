@@ -4,7 +4,6 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 using BullySkate;
 
 static class RunningCompatibilityTests {
@@ -17,12 +16,6 @@ static class RunningCompatibilityTests {
                 string ready=child.StandardOutput.ReadLine();
                 Check(ready==(bad?"readybb":"readygg"),"Authored native probe did not become ready in expected mode (including native SHA-256 self-checks): "+ready);
                 Check(!child.HasExited,"Authored fixture exited after readiness; code: "+(child.HasExited?child.ExitCode.ToString():"running"));
-                bool found=false;
-                for(int attempt=0;attempt<20&&!found;attempt++) {
-                    foreach(var item in Process.GetProcesses())using(item)if(item.Id==child.Id)found=true;
-                    if(!found)Thread.Sleep(100);
-                }
-                Check(found,"Live authored process not visible in Windows process enumeration");
                 var file=GameCompatibility.Inspect(path);
                 Check(!file.Supported&&file.CodeMatched==0&&file.RegionsMatched==1,"Fixture does not reproduce file/memory code difference");
                 var loaded=GameCompatibility.InspectRunning(path);

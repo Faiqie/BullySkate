@@ -139,6 +139,7 @@ namespace BullySkate {
         [DllImport("kernel32.dll",SetLastError=true)] static extern bool ReadProcessMemory(IntPtr handle,IntPtr address,byte[] data,int count,out IntPtr read);
         [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool QueryFullProcessImageName(IntPtr handle,uint flags,StringBuilder name,ref int length);
         [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern uint GetFinalPathNameByHandle(IntPtr handle,StringBuilder name,uint length,uint flags);
+        [DllImport("kernel32.dll",SetLastError=true)] static extern bool K32EnumProcesses(uint[] ids,uint bytes,out uint used);
         [DllImport("kernel32.dll",SetLastError=true)] static extern UIntPtr VirtualQueryEx(IntPtr handle,IntPtr address,out MemoryRegion region,UIntPtr size);
         static byte[] ReadMemory(IntPtr handle,uint address,int length) {
             var data=new byte[length];IntPtr read;
@@ -162,6 +163,14 @@ namespace BullySkate {
                 return name.ToString();
             }
         }
+        static uint[] ProcessIds() {
+            for(int capacity=512;capacity<=65536;capacity*=2) {
+                var ids=new uint[capacity];uint used;
+                if(!K32EnumProcesses(ids,(uint)(ids.Length*4),out used))throw new IOException("Windows could not enumerate running processes.");
+                if(used<ids.Length*4){Array.Resize(ref ids,(int)(used/4));return ids;}
+            }
+            throw new IOException("Windows returned too many processes to inspect.");
+        }
         public static GameBuildInfo InspectRunning(string path) {
             path=Path.GetFullPath(path);var file=Inspect(path);var layout=Expected.Value;
             var info=new GameBuildInfo {Profile=layout.Id,ExecutableHash=file.ExecutableHash,ValidationSource="Running process memory (read only)",SteamWrapped=file.SteamWrapped,Sections=file.Sections,CodeTotal=layout.Code.Count,RegionsTotal=layout.Regions.Count};
@@ -169,10 +178,10 @@ namespace BullySkate {
             bool accessDenied=false;string selected=CanonicalFile(path);
             // Use the OS image path, rather than cached performance-counter names.
             // Canonical paths also handle Windows drive aliases and junctions.
-            foreach(var process in Process.GetProcesses())using(process) {
+            foreach(uint pid in ProcessIds()) {
                 // Query/read access only: no process writes, remote threads, suspension or injection.
-                IntPtr handle=OpenProcess(0x410,false,process.Id);
-                if(handle==IntPtr.Zero){try {if(process.ProcessName=="Bully")accessDenied=true;}catch(InvalidOperationException){}continue;}
+                IntPtr handle=OpenProcess(0x410,false,unchecked((int)pid));
+                if(handle==IntPtr.Zero)continue;
                 try {
                     var name=new StringBuilder(32768);int nameLength=name.Capacity;
                     if(!QueryFullProcessImageName(handle,0,name,ref nameLength))continue;
@@ -197,7 +206,7 @@ namespace BullySkate {
                             if((ulong)region.Address+(uint)region.Length<=(ulong)layout.ImageBase+info.ImageSize&&MemoryMatches(handle,region.Address,region.Length,false,region.Writable))info.RegionsMatched++;
                             else Problem(info,"Loaded native data differs at 0x"+region.Address.ToString("X8")+".");
                         }
-                        try {foreach(ProcessModule module in process.Modules)if(module.ModuleName.IndexOf("SilentPatch",StringComparison.OrdinalIgnoreCase)>=0)info.SilentPatchDetected=true;}catch(System.ComponentModel.Win32Exception){}
+                        try {using(var process=Process.GetProcessById(unchecked((int)pid)))foreach(ProcessModule module in process.Modules)if(module.ModuleName.IndexOf("SilentPatch",StringComparison.OrdinalIgnoreCase)>=0)info.SilentPatchDetected=true;}catch(System.ComponentModel.Win32Exception){}catch(ArgumentException){}catch(InvalidOperationException){}
                         info.Supported=info.CodeMatched==info.CodeTotal&&info.RegionsMatched==info.RegionsTotal;
                     }catch(InvalidDataException error){Problem(info,error.Message);}
                     return info;
