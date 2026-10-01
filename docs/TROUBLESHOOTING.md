@@ -1,5 +1,7 @@
 # Troubleshooting
 
+**Enlarged or cropped game/HUD on a 4K or high-DPI display:** use the updated launcher. It automatically corrects Windows display scaling before Bully starts. You can keep your preferred Windows Scale setting and choose the game's rendering resolution in Bully's graphics settings. If clipping remains, report the monitor resolution, Windows Scale percentage, fullscreen/windowed mode and graphics wrappers in use. For a wrapper that needs the original Windows scaling behavior, try `BullySkateLauncher.exe --no-dpi-fix`.
+
 **Black scene with HUD/audio:** use the normal launcher / native fullscreen settings. Forced borderless mode caused this on the original test PC. Avoid `--windowed`. Close the game, then try `BullySkateLauncher.exe --fullscreen`. Other graphics wrappers or conflicting ASIs can also affect rendering; test against a clean compatible installation and retain your backups.
 
 **Wrong Bully version:** the launcher requires **Bully Scholarship Edition for PC, version 1.200 SP Build 3**. It verifies the exact executable and cannot safely use native addresses in other versions. Select your compatible complete installation. It never supplies or patches a replacement Bully.exe.

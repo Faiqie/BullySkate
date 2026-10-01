@@ -8,6 +8,8 @@ Nearby living NPCs are kinematic capsules, limited to the closest 24 within 16 m
 
 ## Local preparation
 
+The launcher sets `HIGHDPIAWARE` in Bully's child-process compatibility environment before creating the game process, replacing inherited DPI-unaware/GDI-scaling flags while preserving unrelated flags. It changes neither global Windows scaling nor the game's rendering resolution. The launcher itself declares PerMonitorV2 awareness, with a PerMonitor fallback, and enables .NET Framework 4.8 Windows Forms DPI handling for file pickers. See [Microsoft's process DPI guidance](https://learn.microsoft.com/en-us/windows/win32/hidpi/setting-the-default-dpi-awareness-for-a-process) and [Windows Forms DPI configuration](https://learn.microsoft.com/en-us/dotnet/desktop/winforms/high-dpi-support-in-windows-forms). `--no-dpi-fix` leaves the child's original compatibility environment intact.
+
 The public launcher embeds mod code, software runtimes and checksum lists. It does not embed original or converted game assets. First setup reads the selected games without changing their archives:
 
 - Bully `Stream/World.dir` / `World.img`: generates `world.bmgeo` (BMGEO2, per-area collision triangles), `world.bmrails` (BMRL2, area grind candidates), `jimmy-bind.json` (native bind transforms), and `vehicle-bounds.txt` (native street-car bounds).

@@ -1,5 +1,7 @@
 # Validation and beta limits
 
+The display update has been checked with real x86 child processes: the launcher runs per-monitor DPI aware, the game launch settings remove Windows bitmap scaling across six inherited compatibility cases, and fullscreen/windowed flags, parent settings and the opt-out are preserved. Physical testing across 4K displays, mixed-DPI multi-monitor setups and different GPUs has not been completed. These process tests establish the scaling behavior, not visual acceptance on every machine.
+
 The public packaging change has been checked against the original private installation. Local conversion reproduces the same Bully world collision, grind rails and Jimmy bind-rig files. Native car bounds are now loaded from locally generated data instead of compiled into the ASI. No source physics solve or active rig-retarget logic was replaced for packaging.
 
 Previous isolated checks exercised the worker protocol, 600 source frames, ollies, remounts, 24 NPC snapshots, variable input rates, preferences, all 37 gesture choices, FOV, markers, busy queues, towing and board-hit production. The native reaching pose preserved measured arm lengths and landed on the tested rear-panel target. D3D state/reset and rig restoration checks passed. The original user confirmed working native display.

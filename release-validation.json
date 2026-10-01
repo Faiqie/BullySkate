@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "public_source_build": "passed",
   "public_extractor": "passed",
   "first_run_extraction_install": "passed",
@@ -11,8 +11,8 @@
   "original_archives_unchanged": "passed",
   "bully_collision_rails_bind_match_previous_build": true,
   "headless_metacharacter_paths": "passed",
-  "picker_entrypoint": "Actual EXE verified: STA and System.Windows.Forms; manual picker appearance pending",
-  "live_gameplay_acceptance": "not completed for this packaging revision",
+  "picker_entrypoint": "Actual EXE verified: STA, System.Windows.Forms, .NET 4.8 and per-monitor DPI manifest; manual picker appearance pending",
+  "live_gameplay_acceptance": "not completed for this display-scaling revision",
   "source_distribution_audit": "passed: no game assets or personal paths",
   "embedded_payload_audit": "passed: actual EXE payload matches audited ZIP; 504 files",
   "tests": [
@@ -21,12 +21,16 @@
     "2 production collision query tests",
     "100 IPC towing ticks with locally loaded native car bounds",
     "native arm IK and two area remounts",
-    "authored action bank rebuild matches SHA-256"
+    "authored action bank rebuild matches SHA-256",
+    "Windows launcher/child-process DPI and compatibility tests"
   ],
   "tested_binary_sha256": {
-    "BullySkateLauncher.exe": "065d608ee941c1ee8a49b1916315727f870a1ea790b7a5af2e04431fbbdd52b5",
+    "BullySkateLauncher.exe": "b8633b77b178379efbe25b53b64665790ed736d52e5310c4d5425a63bc2744b4",
     "runtime/derpy_script_loader.asi": "23f146ac74137f0bd0bc6a8570429776f7b916c7e4cb7e9208e80079b5460cbe",
     "runtime/SkatePhysicsWorker.exe": "a5bedc1bbb181803c7ce2813d44b7830e9337490fecd470ea1081e0a270d6f74",
     "runtime/SkateAssetExtractor.exe": "910fcb7d2c70097af2b353448e382a12ab9605ce96ffc87345e87737752e49d8"
-  }
+  },
+  "launcher_display_scaling": "passed: per-monitor launcher, 6 inherited compatibility cases with real x86 child processes, fullscreen/windowed settings, opt-out and preserved parent environment",
+  "physical_display_validation": "pending: reported 4K system, mixed-DPI/multi-monitor displays and GPU hardware matrix",
+  "saved_setup_current_launcher": "passed: actual beta.2 EXE verified cached setup and existing installation"
 }

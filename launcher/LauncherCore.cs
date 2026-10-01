@@ -163,11 +163,31 @@ namespace BullySkate {
             if(!Installed(package,selection.Game,selection.BullyAssets))throw new IOException("The installed files did not pass verification. The game has not been started.");
             progress("Installed files verified.");
         }
-        public static Process StartGame(string game,bool windowed) {
-            CheckRunning(game);
+        public static ProcessStartInfo GameStartInfo(string game,bool windowed,bool dpiFix) {
             var start=new ProcessStartInfo(Path.Combine(game,"Bully.exe")) { WorkingDirectory=game,UseShellExecute=false,WindowStyle=ProcessWindowStyle.Normal };
             start.EnvironmentVariables["BULLY_SKATE_WINDOWED"]=windowed?"1":"0";
-            return Process.Start(start);
+            if(dpiFix) {
+                // Apply the Windows Application scaling override before Bully creates
+                // any HWNDs. Keep this in the child environment; no global DPI or
+                // compatibility settings are changed on the player's PC.
+                var layers=new List<string>();
+                foreach(var layer in Regex.Split(start.EnvironmentVariables["__COMPAT_LAYER"]??"",@"\s+")) {
+                    if(layer.Length==0||String.Equals(layer,"HIGHDPIAWARE",StringComparison.OrdinalIgnoreCase)||
+                       String.Equals(layer,"DPIUNAWARE",StringComparison.OrdinalIgnoreCase)||
+                       String.Equals(layer,"GDIDPISCALING",StringComparison.OrdinalIgnoreCase))continue;
+                    layers.Add(layer);
+                }
+                layers.Add("HIGHDPIAWARE");
+                start.EnvironmentVariables["__COMPAT_LAYER"]=String.Join(" ",layers.ToArray());
+            }
+            return start;
+        }
+        public static Process StartGame(string game,bool windowed) {
+            return StartGame(game,windowed,true);
+        }
+        public static Process StartGame(string game,bool windowed,bool dpiFix) {
+            CheckRunning(game);
+            return Process.Start(GameStartInfo(game,windowed,dpiFix));
         }
     }
 }

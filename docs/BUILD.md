@@ -16,6 +16,8 @@ BuildRelease compiles the x86 Rust bridge library and patched native ASI, x64 wo
 
 The upstream rewrite's required Rust crates and the modified headless game modules are included. The loader's source, headers and upstream static libraries are included with its original notices and pinned provenance. Rust dependencies resolve from Cargo.lock; dependency license texts are under `licenses/`. The vendored BSD PyFFI parser provides offline NIF reading; PyInstaller packages it with NumPy, so users need no Python installation.
 
+BuildRelease also runs `tools/TestLauncherDisplay.ps1`. It compiles a legacy x86 DPI probe and starts it through the production launch settings, checking actual Windows DPI awareness, inherited compatibility settings and the opt-out. This opens no visible game window and requires no game files. The launcher uses a per-monitor DPI manifest and the .NET Framework 4.8 Windows Forms DPI configuration.
+
 ## Checks
 
 ```powershell

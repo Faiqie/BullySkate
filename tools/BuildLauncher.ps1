@@ -8,6 +8,6 @@ $taskPayload=Join-Path $taskChat 'work\launcher-payload.zip'
 & (Join-Path $PSScriptRoot 'MakeDeploymentManifest.ps1')
 & $Python (Join-Path $PSScriptRoot 'MakeLauncherPayload.py') $taskPackage $taskPayload
 if($LASTEXITCODE){throw 'Payload packaging failed.'}
-& $Compiler /nologo /target:exe /platform:x86 /optimize+ "/out:$taskPackage\BullySkateLauncher.exe" /reference:System.dll /reference:System.Core.dll /reference:System.Xml.dll /reference:System.Windows.Forms.dll /reference:System.IO.Compression.dll "/resource:$taskPayload,BullySkate.payload" (Join-Path $taskPackage 'launcher\LauncherCore.cs') (Join-Path $taskPackage 'launcher\ConsoleLauncher.cs')
+& $Compiler /nologo /target:exe /platform:x86 /optimize+ "/out:$taskPackage\BullySkateLauncher.exe" "/win32manifest:$taskPackage\launcher\app.manifest" /reference:System.dll /reference:System.Core.dll /reference:System.Xml.dll /reference:System.Windows.Forms.dll /reference:System.IO.Compression.dll "/resource:$taskPayload,BullySkate.payload" (Join-Path $taskPackage 'launcher\LauncherCore.cs') (Join-Path $taskPackage 'launcher\ConsoleLauncher.cs')
 if($LASTEXITCODE){throw 'Launcher build failed.'}
 Write-Output "Launcher ready: $taskPackage\BullySkateLauncher.exe"

@@ -51,6 +51,7 @@ Edit Skater changes **Regular/Goofy**, truck tightness, wheel hardness, style (*
 | `--no-launch` | Install/repair without launching |
 | `--fullscreen` | Use native display settings; the default |
 | `--windowed` | Experimental borderless display; may cause a black scene |
+| `--no-dpi-fix` | Use original Windows display scaling; troubleshooting only |
 | `--game PATH --xex PATH` | Advanced/scripted setup without picker windows |
 | `--state-dir PATH` | Use a separate local setup/cache directory |
 | `--report FILE` | Save the launcher transcript locally; may include your paths |

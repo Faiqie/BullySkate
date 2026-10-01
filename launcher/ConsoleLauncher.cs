@@ -10,6 +10,8 @@ using System.Threading;
 using System.Xml;
 using System.Windows.Forms;
 
+[assembly: System.Runtime.Versioning.TargetFramework(".NETFramework,Version=v4.8",FrameworkDisplayName=".NET Framework 4.8")]
+
 namespace BullySkate {
     public static class ConsoleLauncher {
         [DllImport("kernel32.dll")] static extern IntPtr GetConsoleWindow();
@@ -21,7 +23,7 @@ namespace BullySkate {
         }
         static Dictionary<string,string> Arguments(string[] args) {
             var result=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
-            foreach(var key in new[]{"--setup","--no-launch","--check","--fullscreen","--windowed","--help"})result[key]="false";
+            foreach(var key in new[]{"--setup","--no-launch","--check","--fullscreen","--windowed","--no-dpi-fix","--help"})result[key]="false";
             for(int i=0;i<args.Length;i++) {
                 var key=args[i];
                 if(result.ContainsKey(key)) {result[key]="true";continue;}
@@ -132,6 +134,7 @@ namespace BullySkate {
         }
         [STAThread]
         public static int Main(string[] raw) {
+            Application.EnableVisualStyles();
             Dictionary<string,string> args=null;
             try {
                 args=Arguments(raw);
@@ -141,6 +144,7 @@ namespace BullySkate {
                     Say("Native display settings are the default. --windowed: experimental borderless mode.");
                     Say("--setup: change game paths / re-extract. --fullscreen: keep the native display path.");
                     Say("--check: verify saved setup. --no-launch: prepare or verify without starting Bully.");
+                    Say("Display scaling is corrected automatically. --no-dpi-fix: use original Windows scaling for troubleshooting.");
                     Say("Optional: --game PATH --xex PATH --state-dir PATH --report FILE");return 0;
                 }
                 var state=Path.GetFullPath(Value(args,"--state-dir",Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"BullySkate")));
@@ -190,11 +194,13 @@ namespace BullySkate {
                         if(saveSetup)Save(settings,selection.Game,xex,selection.Assets,selection.BullyAssets);
                         if(args["--no-launch"]=="true") {Say("Ready. Open this launcher again to play.");return 0;}
                         bool windowed=args["--windowed"]=="true"&&args["--fullscreen"]!="true";
+                        bool dpiFix=args["--no-dpi-fix"]!="true";
                         Say("Starting Bully "+(windowed?"in an experimental borderless window":"using native display settings")+"...");
+                        Say(dpiFix?"Windows display scaling correction enabled.":"Using original Windows display scaling.");
                         Say("In gameplay: F6 skating; F5 native Bully; F8 Edit Skater / FOV.");
                         var console=GetConsoleWindow();
                         if(console!=IntPtr.Zero)ShowWindow(console,0);
-                        try {using(var gameProcess=LauncherCore.StartGame(selection.Game,windowed))Say("Bully started. Process "+gameProcess.Id+".");}
+                        try {using(var gameProcess=LauncherCore.StartGame(selection.Game,windowed,dpiFix))Say("Bully started. Process "+gameProcess.Id+".");}
                         catch {if(console!=IntPtr.Zero)ShowWindow(console,5);throw;}
                         return 0;
                     } finally {mutex.ReleaseMutex();}
