@@ -54,12 +54,14 @@ namespace BullySkate {
             if(File.Exists(Path.Combine(path,"assets","private","game.json")))path=Path.Combine(path,"assets");
             return path.TrimEnd(Path.DirectorySeparatorChar);
         }
-        public static bool HasLoader(string game) {
+        public static bool HasLoader(string package,string game) {
             foreach(var name in LoaderNames) {
                 var file=Path.Combine(game,name);
                 if(!File.Exists(file))continue;
                 var description=FileVersionInfo.GetVersionInfo(file).FileDescription??"";
                 if(description.IndexOf("ASI Loader",StringComparison.OrdinalIgnoreCase)>=0)return true;
+                // Recognize the bundled loader by its verified bytes too.
+                if(name=="dinput8.dll"&&Matches(file,Hash(Path.Combine(package,"runtime","asi-loader","dinput8.dll"))))return true;
             }
             return false;
         }
@@ -89,7 +91,7 @@ namespace BullySkate {
             foreach(var relative in new[]{"Scripts/Scripts.img","Act/Act.img"})
                 if(!File.Exists(Below(game,relative)))throw new FileNotFoundException("Select the complete Bully folder. Missing: "+relative);
             CheckRunning(game);
-            if(!HasLoader(game)&&File.Exists(Path.Combine(game,"dinput8.dll")))
+            if(!HasLoader(package,game)&&File.Exists(Path.Combine(game,"dinput8.dll")))
                 throw new InvalidDataException("The selected folder has an unrecognized dinput8.dll. It was preserved. Use your Bully folder with its ASI loader configured.");
             progress("Checking the skating build...");
             foreach(var entry in Manifest(Path.Combine(package,"deployment.sha256"),package))
@@ -106,7 +108,7 @@ namespace BullySkate {
             var collection=Path.Combine(game,"_derpy_script_loader","scripts","BullyMotion");
             var assets=Path.Combine(collection,"skate-assets");
             if(!Matches(Path.Combine(game,"derpy_script_loader.asi"),Hash(Path.Combine(package,"runtime","derpy_script_loader.asi"))))return false;
-            if(!HasLoader(game))return false;
+            if(!HasLoader(package,game))return false;
             if(!Matches(Path.Combine(collection,"SkatePhysicsWorker.exe"),Hash(Path.Combine(package,"runtime","SkatePhysicsWorker.exe"))))return false;
             if(!Matches(Path.Combine(collection,"vcruntime140.dll"),Hash(Path.Combine(package,"runtime","worker-dependencies","vcruntime140.dll"))))return false;
             if(!File.Exists(Path.Combine(game,"vcruntime140.dll")))return false;

@@ -11,6 +11,7 @@ static class RunningCompatibilityTests {
             try {
                 string ready=child.StandardOutput.ReadLine();
                 Check(ready==(bad?"readybb":"readygg"),"Authored native probe did not become ready in expected mode (including native SHA-256 self-checks): "+ready);
+                Check(!child.HasExited,"Authored fixture exited after readiness; code: "+(child.HasExited?child.ExitCode.ToString():"running"));
                 var file=GameCompatibility.Inspect(path);
                 Check(!file.Supported&&file.CodeMatched==0&&file.RegionsMatched==1,"Fixture does not reproduce file/memory code difference");
                 var loaded=GameCompatibility.InspectRunning(path);

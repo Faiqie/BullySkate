@@ -37,9 +37,13 @@ $assetEntries=@(Get-Content -LiteralPath $assetManifest | ForEach-Object {
  [PSCustomObject]@{Relative=$relative;Source=$source;Hash=$assetHash}
 })
 $asiLoaderFound=$false
+$taskBundledLoader=Join-Path $PSScriptRoot 'runtime\asi-loader\dinput8.dll'
+$taskBundledLoaderHash=(Get-FileHash -LiteralPath $taskBundledLoader).Hash
 foreach($name in @('dinput8.dll','dsound.dll','version.dll','winmm.dll','d3d9.dll')){
  $candidate=Join-Path $taskGame $name
- if((Test-Path -LiteralPath $candidate) -and [Diagnostics.FileVersionInfo]::GetVersionInfo($candidate).FileDescription -match 'ASI Loader'){$asiLoaderFound=$true}
+ if(Test-Path -LiteralPath $candidate){
+  if([Diagnostics.FileVersionInfo]::GetVersionInfo($candidate).FileDescription -match 'ASI Loader' -or ($name -eq 'dinput8.dll' -and (Get-FileHash -LiteralPath $candidate).Hash -eq $taskBundledLoaderHash)){$asiLoaderFound=$true}
+ }
 }
 if(!$asiLoaderFound -and (Test-Path -LiteralPath (Join-Path $taskGame 'dinput8.dll'))){throw 'The existing dinput8.dll is not the verified ASI loader. It was preserved; use a Bully folder with its ASI loader configured.'}
 foreach($process in @(Get-Process Bully -ErrorAction SilentlyContinue)){

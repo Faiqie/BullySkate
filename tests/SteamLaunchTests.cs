@@ -32,6 +32,15 @@ static class SteamLaunchTests {
         File.WriteAllText(manifest,new String('x',1024*1024+1));Reject(game);
         File.WriteAllText(manifest,"\"appid\" \"12200\" \"installdir\" \"Bully Scholarship Edition\"");
         Reject(Path.Combine(library,"Bully Scholarship Edition"));
+        string package=Path.GetFullPath(args[1]);
+        string clean=Path.Combine(library,"Fresh Bully install");Directory.CreateDirectory(clean);
+        Check(!LauncherCore.HasLoader(package,clean),"Missing loader accepted");
+        string bundled=Path.Combine(package,"runtime","asi-loader","dinput8.dll");
+        string installed=Path.Combine(clean,"dinput8.dll");
+        File.Copy(bundled,installed);
+        Check(LauncherCore.HasLoader(package,clean),"Bundled loader without description rejected");
+        File.WriteAllBytes(installed,new byte[64]);
+        Check(!LauncherCore.HasLoader(package,clean),"Different undescribed loader accepted");
         Console.WriteLine("PASS: selected Steam manifest, fixed authenticated URI, wrong app/folder/missing/oversized manifest and metacharacter paths; no Steam client launched.");
         return 0;
     }

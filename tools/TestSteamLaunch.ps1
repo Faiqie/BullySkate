@@ -6,5 +6,5 @@ $taskTests=Join-Path $taskRoot ('work\steam-launch-tests-'+[Guid]::NewGuid().ToS
 New-Item -ItemType Directory -Path $taskTests -Force | Out-Null
 & $Compiler /nologo /target:exe /platform:x86 "/out:$taskTests\SteamLaunchTests.exe" /reference:System.dll /reference:System.Core.dll /reference:System.Xml.dll (Join-Path $taskRoot 'launcher\GameCompatibility.cs') (Join-Path $taskRoot 'launcher\LauncherCore.cs') (Join-Path $taskRoot 'tests\SteamLaunchTests.cs')
 if($LASTEXITCODE){throw 'Steam launch test build failed.'}
-& (Join-Path $taskTests 'SteamLaunchTests.exe') $taskTests
+& (Join-Path $taskTests 'SteamLaunchTests.exe') $taskTests $taskRoot
 if($LASTEXITCODE){throw 'Steam launch tests failed.'}

@@ -17,6 +17,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test read-only loaded-engine verification
+        shell: powershell
+        run: |
+          python -m pip install pefile
+          ./tools/TestRunningCompatibility.ps1
       - name: Test actual Windows child-process DPI behavior
         shell: powershell
         run: ./tools/TestLauncherDisplay.ps1

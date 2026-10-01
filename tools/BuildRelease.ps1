@@ -1,4 +1,4 @@
-param([string]$Python='python',[string]$Version='0.1.0-beta.4')
+param([string]$Python='python',[string]$Version='0.1.0')
 $ErrorActionPreference='Stop'
 $taskRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 & (Join-Path $PSScriptRoot 'BuildActions.ps1') -Python $Python

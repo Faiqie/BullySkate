@@ -138,6 +138,7 @@ namespace BullySkate {
         [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
         [DllImport("kernel32.dll",SetLastError=true)] static extern bool ReadProcessMemory(IntPtr handle,IntPtr address,byte[] data,int count,out IntPtr read);
         [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool QueryFullProcessImageName(IntPtr handle,uint flags,StringBuilder name,ref int length);
+        [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern uint GetFinalPathNameByHandle(IntPtr handle,StringBuilder name,uint length,uint flags);
         [DllImport("kernel32.dll",SetLastError=true)] static extern UIntPtr VirtualQueryEx(IntPtr handle,IntPtr address,out MemoryRegion region,UIntPtr size);
         static byte[] ReadMemory(IntPtr handle,uint address,int length) {
             var data=new byte[length];IntPtr read;
@@ -153,18 +154,31 @@ namespace BullySkate {
             bool write=protection==0x04||protection==0x08||protection==0x40||protection==0x80;
             return region.State==0x1000&&(region.Protect&0x100)==0&&protection!=0&&protection!=1&&address>=start&&(ulong)address+(uint)length<=end&&(!executable||execute)&&(!writable||write);
         }
+        static string CanonicalFile(string path) {
+            using(var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite|FileShare.Delete)) {
+                var name=new StringBuilder(32768);
+                uint size=GetFinalPathNameByHandle(stream.SafeFileHandle.DangerousGetHandle(),name,(uint)name.Capacity,0);
+                if(size==0||size>=name.Capacity)throw new IOException("The selected executable path could not be resolved.");
+                return name.ToString();
+            }
+        }
         public static GameBuildInfo InspectRunning(string path) {
             path=Path.GetFullPath(path);var file=Inspect(path);var layout=Expected.Value;
             var info=new GameBuildInfo {Profile=layout.Id,ExecutableHash=file.ExecutableHash,ValidationSource="Running process memory (read only)",SteamWrapped=file.SteamWrapped,Sections=file.Sections,CodeTotal=layout.Code.Count,RegionsTotal=layout.Regions.Count};
             if(!file.StructureValid){info.Problem=file.Problem;return info;}
-            bool accessDenied=false;
-            foreach(var process in Process.GetProcessesByName("Bully"))using(process) {
+            bool accessDenied=false;string selected=CanonicalFile(path);
+            // Use the OS image path, rather than cached performance-counter names.
+            // Canonical paths also handle Windows drive aliases and junctions.
+            foreach(var process in Process.GetProcesses())using(process) {
                 // Query/read access only: no process writes, remote threads, suspension or injection.
                 IntPtr handle=OpenProcess(0x410,false,process.Id);
-                if(handle==IntPtr.Zero){accessDenied=true;continue;}
+                if(handle==IntPtr.Zero){try {if(process.ProcessName=="Bully")accessDenied=true;}catch(InvalidOperationException){}continue;}
                 try {
                     var name=new StringBuilder(32768);int nameLength=name.Capacity;
-                    if(!QueryFullProcessImageName(handle,0,name,ref nameLength)||!String.Equals(Path.GetFullPath(name.ToString()),path,StringComparison.OrdinalIgnoreCase))continue;
+                    if(!QueryFullProcessImageName(handle,0,name,ref nameLength))continue;
+                    if(!String.Equals(Path.GetFileName(name.ToString()),"Bully.exe",StringComparison.OrdinalIgnoreCase))continue;
+                    try {if(!String.Equals(CanonicalFile(name.ToString()),selected,StringComparison.OrdinalIgnoreCase))continue;}
+                    catch(IOException){continue;}catch(UnauthorizedAccessException){accessDenied=true;continue;}
                     try {
                         var dos=ReadMemory(handle,layout.ImageBase,64);long pe=U32(dos,0x3C);
                         if(U16(dos,0)!=0x5A4D||pe<64||pe>1024*1024)throw new InvalidDataException("Loaded executable header differs.");
