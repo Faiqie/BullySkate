@@ -13,9 +13,18 @@ foreach($taskName in @('BullySkateLauncher.exe','BullySkateLauncher.exe.config',
 foreach($taskName in @('docs','licenses')){Copy-Item -LiteralPath (Join-Path $taskRoot $taskName) -Destination $taskStage -Recurse}
 New-Item -ItemType Directory -Path (Join-Path $taskStage 'tools') -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'DisableSaved.ps1') -Destination (Join-Path $taskStage 'tools')
+$taskStagePrefix=$taskStage.TrimEnd('\')+'\'
+$taskLines=@(Get-ChildItem -LiteralPath $taskStage -Recurse -File | Sort-Object FullName | ForEach-Object {
+ $taskHash=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+ $taskHash+'  '+$_.FullName.Substring($taskStagePrefix.Length).Replace('\','/')
+})
+[IO.File]::WriteAllLines((Join-Path $taskStage 'SHA256SUMS.txt'),$taskLines,[Text.ASCIIEncoding]::new())
 $taskZip=Join-Path $taskRelease ("BullySkate-Windows-v$Version.zip")
 Compress-Archive -LiteralPath @(Get-ChildItem -LiteralPath $taskStage | ForEach-Object {$_.FullName}) -DestinationPath $taskZip -Force
-Copy-Item -LiteralPath (Join-Path $taskRoot 'BullySkateLauncher.exe') -Destination $taskRelease -Force
-$taskLines=@(Get-FileHash -LiteralPath $taskZip,(Join-Path $taskRelease 'BullySkateLauncher.exe') -Algorithm SHA256 | ForEach-Object {$_.Hash.ToLowerInvariant()+'  '+[IO.Path]::GetFileName($_.Path)})
-[IO.File]::WriteAllLines((Join-Path $taskRelease 'SHA256SUMS.txt'),$taskLines,[Text.ASCIIEncoding]::new())
+# Remove the obsolete standalone downloads from earlier packaging runs.
+foreach($taskName in @('BullySkateLauncher.exe','SHA256SUMS.txt')){
+ $taskOldArtifact=[IO.Path]::GetFullPath((Join-Path $taskRelease $taskName))
+ if([IO.Path]::GetDirectoryName($taskOldArtifact) -ne $taskRelease){throw 'Unsafe release artifact path.'}
+ if(Test-Path -LiteralPath $taskOldArtifact){Remove-Item -LiteralPath $taskOldArtifact -Force}
+}
 Write-Output "Release ready: $taskZip"

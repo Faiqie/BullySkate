@@ -10,7 +10,7 @@ python -m pip install -r requirements-build.txt
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/BuildRelease.ps1
 ```
 
-BuildRelease compiles the x86 Rust bridge library and patched native ASI, x64 worker, standalone local asset converter, and terminal launcher. It audits the source/payload and writes a release ZIP plus SHA-256 checksums under `release/`. Intermediate files live under `work/`. The checked-in authored `BullyMotion.cat` action bank uses references to Bully's existing animations; `BullyMotion.mact` and `tools/make_actions.py` are its source. It contains no animation samples. Its compiler provenance is recorded in THIRD_PARTY_NOTICES.
+BuildRelease compiles the x86 Rust bridge library and patched native ASI, x64 worker, standalone local asset converter, and terminal launcher. It audits the source/payload and writes one player ZIP under `release/`, with SHA-256 checksums inside the ZIP. Source code remains a separate repository/source-archive download. Intermediate files live under `work/`. The checked-in authored `BullyMotion.cat` action bank uses references to Bully's existing animations; `BullyMotion.mact` and `tools/make_actions.py` are its source. It contains no animation samples. Its compiler provenance is recorded in THIRD_PARTY_NOTICES.
 
 `tools/Build.cmd` locates Visual Studio with vswhere. If needed, set `BULLY_VCVARS` to your installation's `VC/Auxiliary/Build/vcvarsall.bat`. A custom target directory may be passed to Build.ps1 or BuildWorker.ps1. The launcher is compiled with the Windows Forms reference and an STA entry point for its standard file pickers.
 

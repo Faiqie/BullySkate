@@ -2,7 +2,9 @@
 
 Skate through Bullworth as Jimmy using the Skate 3 Rust rewrite's simulation, animation and controller systems. Bully keeps its world, missions, pedestrians, traffic, audio and saves. This is an unofficial **Windows beta**.
 
-**[Download the launcher](https://github.com/Faiqie/BullySkate/releases/tag/v0.1.0-beta.1)** · [Controls](docs/CONTROLS.md) · [Build from source](docs/BUILD.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
+**[Download the Windows ZIP](https://github.com/Faiqie/BullySkate/releases/download/v0.1.0-beta.1/BullySkate-Windows-v0.1.0-beta.1.zip)** · [Controls](docs/CONTROLS.md) · [Build from source](docs/BUILD.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
+
+Players need only this ZIP: it includes the launcher, setup helpers, instructions and licenses. Extract it and run `BullySkateLauncher.exe`. Source code is a separate download using **Source code (zip)** or **Source code (tar.gz)** on the [release page](https://github.com/Faiqie/BullySkate/releases/tag/v0.1.0-beta.1), or clone this repository.
 
 ## Install and play
 
