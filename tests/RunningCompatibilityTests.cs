@@ -4,13 +4,14 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using BullySkate;
 
 static class RunningCompatibilityTests {
     [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool QueryFullProcessImageName(IntPtr handle,uint flags,StringBuilder name,ref int length);
     static void Check(bool value,string message){if(!value)throw new Exception(message);}
     static void Case(string path,bool bad){
-        using(var child=new Process {StartInfo=new ProcessStartInfo(path,bad?"--bad":"") {UseShellExecute=false,CreateNoWindow=true,RedirectStandardInput=true,RedirectStandardOutput=true}}) {
+        using(var child=new Process {StartInfo=new ProcessStartInfo(path,bad?"--bad":"") {UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true}}) {
             child.Start();
             try {
                 string ready=child.StandardOutput.ReadLine();
@@ -22,7 +23,7 @@ static class RunningCompatibilityTests {
                 if(loaded.CodeMatched!=(bad?1:2)||loaded.RegionsMatched!=1) {
                     var queried=new StringBuilder(32768);int length=queried.Capacity;
                     bool query=QueryFullProcessImageName(child.Handle,0,queried,ref length);
-                    Console.WriteLine("Fixture path: {0}; child image: {1}; query: {2}; error: {3}; process: {4}",path,queried,query,Marshal.GetLastWin32Error(),child.ProcessName);
+                    Console.WriteLine("Fixture path: {0}; child image: {1}; query: {2}; error: {3}; exited: {4}",path,queried,query,Marshal.GetLastWin32Error(),child.HasExited);
                     var canonical=typeof(GameCompatibility).GetMethod("CanonicalFile",BindingFlags.NonPublic|BindingFlags.Static);
                     Console.WriteLine("Selected canonical: {0}; image canonical: {1}",canonical.Invoke(null,new object[]{path}),query?canonical.Invoke(null,new object[]{queried.ToString()}):"unavailable");
                 }
@@ -31,7 +32,7 @@ static class RunningCompatibilityTests {
                 Check(loaded.Report().IndexOf(path,StringComparison.OrdinalIgnoreCase)<0,"Diagnostic report contains a personal path");
                 Check(!child.HasExited,"Read-only inspection stopped the process");
             } finally {
-                if(!child.HasExited){child.StandardInput.Write("x");child.StandardInput.Flush();if(!child.WaitForExit(5000))child.Kill();}
+                if(!child.HasExited){using(var stop=EventWaitHandle.OpenExisting("Local\\BullySkateProbe-"+child.Id))stop.Set();if(!child.WaitForExit(5000)){child.Kill();child.WaitForExit();}}
             }
         }
     }
