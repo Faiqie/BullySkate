@@ -2,7 +2,7 @@
 
 **Black scene with HUD/audio:** use the normal launcher / native fullscreen settings. Forced borderless mode caused this on the original test PC. Avoid `--windowed`. Close the game, then try `BullySkateLauncher.exe --fullscreen`. Other graphics wrappers or conflicting ASIs can also affect rendering; test against a clean compatible installation and retain your backups.
 
-**Wrong Bully version:** the launcher supports only the verified 1.200 SP Build 3 executable. It cannot safely use native addresses in other versions. Select your compatible complete installation. It never supplies or patches a replacement Bully.exe.
+**Wrong Bully version:** the launcher requires **Bully Scholarship Edition for PC, version 1.200 SP Build 3**. It verifies the exact executable and cannot safely use native addresses in other versions. Select your compatible complete installation. It never supplies or patches a replacement Bully.exe.
 
 **Missing Skate files:** selecting default.xex requires the full extracted Xbox 360 folder, including `data/big/miscload.big`, `miscboot.big`, and `db.big`, with their original directory structure. It cannot extract an ISO or console package directly. Unsupported or altered source assets are reported by filename; no game data is downloaded.
 

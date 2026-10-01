@@ -8,8 +8,10 @@ Players need only this ZIP: it includes the launcher, setup helpers, instruction
 
 ## Install and play
 
+**Required Bully version: Bully Scholarship Edition for PC, version 1.200 SP Build 3.** The launcher verifies your `Bully.exe` and rejects other executable versions.
+
 1. Download `BullySkate-Windows-v0.1.0-beta.1.zip` from Releases and extract it into a folder you can write to.
-2. Close Bully, then open `BullySkateLauncher.exe`. The terminal opens a Windows file-selection window. Select **Bully.exe** in your installed Bully Scholarship Edition folder.
+2. Close Bully, then open `BullySkateLauncher.exe`. The terminal opens a Windows file-selection window. Select **Bully.exe** in your installed **Bully Scholarship Edition 1.200 SP Build 3** folder.
 3. A second file-selection window asks for **default.xex** in your own complete, extracted Xbox 360 Skate 3 folder. Select the XEX; leave the surrounding `data` folder intact.
 4. Wait while the launcher prepares the required data locally, verifies it, backs up the previous mod installation, and starts Bully. This preparation runs once; subsequent launches reuse your saved setup.
 5. Load Story, finish the cutscene, and stand on foot on solid ground. Press **F6**, or **View/Back + D-pad Left**, to start skating. Initial simulation preparation may take about 15 seconds; if it says it is preparing, wait and toggle again.
@@ -29,7 +31,7 @@ Requirements: Windows 10/11 **64-bit**, .NET Framework 4.8, an installed **Bully
 - Skitch moving street cars by matching their speed, approaching the rear bumper, and holding RB. Bully still owns the car's AI; the adapter supplies bounded towing and a reaching pose.
 - Collision and grind candidates separated by Bully area; nearby NPC and traffic contacts are mirrored into the skating solver.
 - Render-thread input submission is asynchronous, with bounded queues, cached geometry and rigs, and throttled actor snapshots. The skating speed panel has been removed.
-- Bully's native display mode by default, working Alt+F4 handler, installation backups, saved setup, integrity checks, and repair.
+- Bully's native display mode by default, installation backups, saved setup, integrity checks, and repair.
 
 See [all controls](docs/CONTROLS.md), [technical design](docs/ARCHITECTURE.md), and [validation and limits](docs/VALIDATION.md). The upstream rewrite is unfinished; this beta is **not verified as identical to retail Skate 3**. Skitching is implemented by this Bully adapter. Independent wheel spin, every mission/interior/outfit, and performance on other PCs are not fully verified. No gun mode is included.
 

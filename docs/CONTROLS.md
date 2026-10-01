@@ -23,7 +23,6 @@ Controller names use the Xbox/XInput layout. View/Back is the small button to th
 | Cancel pending respawn | Release D-pad Up | Release F10 |
 | Perform assigned gesture | Hold its D-pad direction without View/Back or LB | Controller |
 | Native pause | Start | Escape |
-| Close game | — | Alt+F4 |
 | Reload mod scripts / return to native controls | — | F9 (debug/repair) |
 
 Source right-stick motions determine tricks; this adapter forwards the original controller input rather than assigning every trick to a separate button. LT/RT feed source grab input. Triggers, finger flips and source-specific combinations follow the supplied rewrite's recognizer; retail-complete recognition is not claimed.
