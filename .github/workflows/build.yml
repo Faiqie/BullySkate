@@ -7,6 +7,19 @@ on:
 permissions:
   contents: read
 jobs:
+  display:
+    name: Display scaling (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test actual Windows child-process DPI behavior
+        shell: powershell
+        run: ./tools/TestLauncherDisplay.ps1
   windows:
     runs-on: windows-2022
     timeout-minutes: 90
