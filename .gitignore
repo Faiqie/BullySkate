@@ -1,0 +1,46 @@
+# Game data and local extraction state must never be uploaded.
+**/private/
+**/skate-assets/
+**/bully-assets/
+**/assets/
+*.xex
+*.img
+*.dir
+*.nif
+*.nft
+*.dds
+*.abin
+*.bmgeo
+*.bmrails
+*.rwcmset
+*.vlt
+**/jimmy-bind.json
+**/vehicle-bounds.txt
+BullyFile*
+FileTableBully*
+*.dat
+console-setup.xml*
+extraction-receipt.json
+source-path.txt
+# Build outputs and private diagnostics.
+/work/
+/prepared/
+/target/
+**/target/
+/release/
+/evidence/
+**/__pycache__/
+*.pyc
+*.pyo
+*.obj
+*.pdb
+*.map
+*.log
+*.new
+*.previous
+/runtime/*.exe
+/runtime/*.asi
+/BullySkateLauncher.exe
+/deployment.sha256
+# Bundled parser tool is unused by this host.
+/vendor/python/pyffi/utils/mopper.exe

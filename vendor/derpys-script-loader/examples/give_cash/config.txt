@@ -1,0 +1,2 @@
+# there are many things that can be put in a config.txt file, but we just want to run a single script
+main_script cash.lua

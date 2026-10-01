@@ -1,0 +1,5 @@
+# all we want to do is run riot.lua, so all we do is mark it as a main_script
+main_script riot.lua
+
+# we need version 5 for the AllPeds function
+require_version 5

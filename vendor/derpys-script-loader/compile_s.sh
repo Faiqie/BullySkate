@@ -1,0 +1,1 @@
+./compile.sh -DDSL_DISABLE_SYSTEM_ACCESS

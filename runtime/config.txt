@@ -1,0 +1,29 @@
+# derpy's script loader: config
+config_version 3
+
+[NETWORKING]
+username player           # your username for servers
+allow_networking false    # allow connection to servers
+
+[SERVER_LIST]
+list_server localhost:17017    # allow listing to be shown for this server (add as many list_server lines as you want)
+
+[SCRIPT_LOADING]
+dont_auto_start false          # prefer not to start script collections automatically
+force_auto_start_pref false    # ignore auto_start overrides set by script collections
+
+[CONSOLE_PREFERENCES]
+console_key 0x29                                   # directinput keyboard scan code
+console_font Lucida Console                        # must be a font installed on the system
+console_scale 1.0                                  # scale for the text in the console window
+console_color BB000000                             # background color specified in AARRGGBB format
+#console_image _derpy_script_loader/example.png    # 1:1 png to replace the default snake signature
+console_logging true                               # log console messages during each stage to a file
+
+[IMG_FILE_REPLACEMENT]
+allow_img_replacement true      # create temporary copies of img archives that include files supplied by script collections
+allow_world_replacement true    # world.img is very large and can drastically increase load times on slow storage
+
+[UNRESTRICTED_SYSTEM_ACCESS]
+allow_system_access false                 # fully load io / os / loadlib libraries (dangerous with downloaded / untrusted scripts)
+yes_im_sure_i_know_what_im_doing false    # seriously this gives all scripts you run full access to your system

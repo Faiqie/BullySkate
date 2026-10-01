@@ -1,0 +1,8 @@
+# just one main_script
+main_script nerds.lua
+
+# require loadanim.lua since we rely on animation groups already being loaded for action nodes
+require_dependency loadanim.lua
+
+# we need version 5 at least, since that is when PedStatOverriding was introduced
+require_version 5

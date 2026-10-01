@@ -1,0 +1,5 @@
+# derpy's script loader: dev helper scripts
+
+require_version 5
+main_script run.lua
+main_script coords.lua

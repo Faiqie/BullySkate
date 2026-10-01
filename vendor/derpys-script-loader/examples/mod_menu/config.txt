@@ -1,0 +1,5 @@
+# just one main script
+main_script menu.lua
+
+# custom settings for our menu
+open_key F5

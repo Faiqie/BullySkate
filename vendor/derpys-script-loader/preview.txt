@@ -1,0 +1,9 @@
+derpy's script loader: preview
+
+about:
+ this is a preview version, you can find full versions here
+ http://bullyscripting.net/downloads.html#dsl
+
+discord:
+ join the discord to talk about preview versions
+ https://discord.gg/r6abc7Avpm

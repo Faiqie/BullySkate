@@ -1,0 +1,379 @@
+Bank BullyMotion
+{
+	Node Idle
+	{
+		ConditionGroup
+		{
+		}
+		Tracks
+		{
+			PropSetSocket
+			{
+				param00008 false
+				param00012 0.000000
+				param00024 h"DUMMY"
+				param00032 false
+			}
+			Animation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\SK8_IDLE_REG"
+				param00032 2
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+			WeaponAnimation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\Idle_SK8Board"
+				param00032 2
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+		}
+	}
+	Node Coast
+	{
+		ConditionGroup
+		{
+		}
+		Tracks
+		{
+			PropSetSocket
+			{
+				param00008 false
+				param00012 0.000000
+				param00024 h"DUMMY"
+				param00032 false
+			}
+			Animation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\SK8_COAST_REG"
+				param00032 2
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+			WeaponAnimation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\Idle_SK8Board"
+				param00032 2
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+		}
+	}
+	Node TurnLeft
+	{
+		ConditionGroup
+		{
+		}
+		Tracks
+		{
+			PropSetSocket
+			{
+				param00008 false
+				param00012 0.000000
+				param00024 h"DUMMY"
+				param00032 false
+			}
+			Animation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\SK8_TURNL_REG"
+				param00032 2
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+			WeaponAnimation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\Idle_SK8Board"
+				param00032 2
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+		}
+	}
+	Node TurnRight
+	{
+		ConditionGroup
+		{
+		}
+		Tracks
+		{
+			PropSetSocket
+			{
+				param00008 false
+				param00012 0.000000
+				param00024 h"DUMMY"
+				param00032 false
+			}
+			Animation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\SK8_TURNR_REG"
+				param00032 2
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+			WeaponAnimation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\Idle_SK8Board"
+				param00032 2
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+		}
+	}
+	Node Push
+	{
+		ConditionGroup
+		{
+		}
+		Tracks
+		{
+			PropSetSocket
+			{
+				param00008 false
+				param00012 0.000000
+				param00024 h"DUMMY"
+				param00032 false
+			}
+			Animation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\SK8_PUMP_REG"
+				param00032 0
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+			WeaponAnimation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\Idle_SK8Board"
+				param00032 0
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+		}
+	}
+	Node Brake
+	{
+		ConditionGroup
+		{
+		}
+		Tracks
+		{
+			PropSetSocket
+			{
+				param00008 false
+				param00012 0.000000
+				param00024 h"DUMMY"
+				param00032 false
+			}
+			Animation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\SK8_BREAK_REG"
+				param00032 2
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+			WeaponAnimation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\Break_Reg_SK8Board"
+				param00032 2
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+		}
+	}
+	Node Ollie
+	{
+		ConditionGroup
+		{
+		}
+		Tracks
+		{
+			PropSetSocket
+			{
+				param00008 false
+				param00012 0.000000
+				param00024 h"DUMMY"
+				param00032 false
+			}
+			Animation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\Sk8_Ollie_Reg"
+				param00032 0
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+			WeaponAnimation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\Ollie_Reg_SK8Board"
+				param00032 0
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+		}
+	}
+	Node Crouch
+	{
+		ConditionGroup
+		{
+		}
+		Tracks
+		{
+			PropSetSocket
+			{
+				param00008 false
+				param00012 0.000000
+				param00024 h"DUMMY"
+				param00032 false
+			}
+			Animation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\SK8_CROUCH_FWD_REG"
+				param00032 2
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+			WeaponAnimation
+			{
+				param00008 true
+				param00012 0.000000
+				param00016 -1.000000
+				param00024 h"SKATEBOARD\Idle_SK8Board"
+				param00032 2
+				param00036 0
+				param00040 0.000000
+				param00044 -1.000000
+				param00048 1.000000
+				param00052 0.120000
+				param00056 -1.000000
+			}
+		}
+	}
+	Node Exit
+	{
+		ConditionGroup
+		{
+		}
+		Tracks
+		{
+			SetWeaponFlags
+			{
+				param00008 false
+				param00012 0.000000
+				param00024 false
+				param00028 0
+			}
+			PropSetSocket
+			{
+				param00008 false
+				param00012 0.000000
+				param00024 h"LeftHand"
+				param00028 h"LocoHold"
+				param00032 false
+			}
+		}
+	}
+}

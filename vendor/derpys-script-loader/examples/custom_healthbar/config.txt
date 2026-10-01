@@ -1,0 +1,2 @@
+# we just have one script so that's the only main_script we need
+main_script health.lua

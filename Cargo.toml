@@ -1,0 +1,28 @@
+[package]
+name = "bully-motion"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["staticlib", "rlib"]
+
+[[bin]]
+name = "SkatePhysicsWorker"
+path = "src/skate_worker.rs"
+
+[dependencies]
+skate-core = { path = "vendor/skate-rewrite/crates/skate-core" }
+bully-skate-runtime={path="skate-runtime"}
+parry3d = "0.30.2"
+
+[build-dependencies]
+serde_json = "1.0"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "unwind"
+
+[workspace]
+exclude = ["vendor/skate-rewrite", "vendor/skate-rewrite/crates/skate-core", "vendor/skate-rewrite/crates/skate-data", "vendor/skate-rewrite/crates/skate-net", "vendor/skate-rewrite/crates/skate-dynamics"]

@@ -1,0 +1,5 @@
+# we use "launcher.lua" to control when "survival.lua" will start (so it is the only main_script we want)
+main_script launcher.lua
+
+# we only need version 5 because of the SetTextBlack function
+require_version 5

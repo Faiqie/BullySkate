@@ -1,0 +1,2 @@
+# we just have one main script
+main_script free.lua

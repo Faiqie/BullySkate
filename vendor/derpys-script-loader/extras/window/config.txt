@@ -1,0 +1,28 @@
+# derpy's script loader: windowed mode
+
+# pressing alt+f4 will close the game instantly
+# pressing alt+enter will switch between borderless fullscreen and windowed mode
+
+[PREFERENCES]
+start_borderless true
+disable_minimize true
+
+[WINDOWED]
+#windowed_x 0
+#windowed_y 0
+windowed_width 1280
+windowed_height 720
+
+[FULLSCREEN]
+#borderless_x 0
+#borderless_y 0
+#borderless_width 1920
+#borderless_height 1080
+
+[CONFIG]
+auto_start true
+require_version 5
+main_script window.lua
+init_script window.lua
+pre_init_script window.lua
+allow_on_server true

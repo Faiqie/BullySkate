@@ -1,0 +1,17 @@
+[package]
+name="bully-skate-runtime"
+version="0.1.0"
+edition="2024"
+[lib]
+crate-type=["rlib"]
+[dependencies]
+bevy={version="=0.18.1",default-features=false,features=["std","bevy_log"]}
+skate-core={path="../vendor/skate-rewrite/crates/skate-core"}
+skate-data={path="../vendor/skate-rewrite/crates/skate-data"}
+skate-net={path="../vendor/skate-rewrite/crates/skate-net"}
+skate-dynamics={path="../vendor/skate-rewrite/crates/skate-dynamics"}
+serde_json="1.0"
+serde={version="1.0",features=["derive"]}
+gltf="=1.4.1"
+[profile.release]
+opt-level=3

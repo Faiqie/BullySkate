@@ -1,0 +1,1 @@
+@compile.cmd /DDSL_DISABLE_SYSTEM_ACCESS

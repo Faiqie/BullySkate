@@ -1,0 +1,2 @@
+# we just have one script so that's all we need in the config
+main_script bodyguard.lua

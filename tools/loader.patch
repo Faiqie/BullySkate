@@ -1,0 +1,68 @@
+diff --git a/src/client/main.c b/src/client/main.c
+index 4952fa3..887d28a 100644
+--- a/src/client/main.c
++++ b/src/client/main.c
+@@ -82,13 +82,25 @@ static void assertSameThreadFunc(const char *name){
+ #endif
+ 
+ // D3D INIT
++void fakieBeforeDeviceReset(IDirect3DDevice9 *device);
++static HRESULT (__stdcall *g_originalreset)(IDirect3DDevice9*,D3DPRESENT_PARAMETERS*);
++static HRESULT __stdcall resetMotionDevice(IDirect3DDevice9 *device,D3DPRESENT_PARAMETERS *parameters){
++	fakieBeforeDeviceReset(device);
++	return g_originalreset(device,parameters);
++}
+ static HRESULT __stdcall setupDevice(void *arg,UINT adapter,D3DDEVTYPE type,HWND focus,DWORD behavior,D3DPRESENT_PARAMETERS *presentation,IDirect3DDevice9 **device){
+ 	HRESULT result;
+ 	
+ 	assertSameThread();
+ 	result = IDirect3D9_CreateDevice(getGameDirect3D9(),adapter,type,focus,behavior,presentation,device);
+-	if(result == D3D_OK)
++	if(result == D3D_OK){
+ 		g_d3d9device = *device;
++		if(!g_originalreset){
++			void **table=*(void***)*device;
++			g_originalreset=(void*)table[16];
++			replaceImmediateValue(table+16,&resetMotionDevice);
++		}
++	}
+ 	return result;
+ }
+ 
+@@ -187,7 +199,10 @@ static void __fastcall updateScripts(void *game,void *edx,void *arg){
+ }
+ static void __cdecl drawGameWorld(){
+ 	assertSameThread();
++	{ extern void fakieBeforeWorld(void*); fakieBeforeWorld(g_dsl); }
+ 	(*(void(__cdecl*)())0x55E2C0)();
++	{ extern void fakieAfterWorld(void); fakieAfterWorld(); }
++	{ extern void fakieDrawWorld(void*); fakieDrawWorld(g_dsl); }
+ 	if(g_dsl)
+ 		updateDslAfterWorld(g_dsl);
+ }
+@@ -511,4 +526,4 @@ static BOOL DllMain(HINSTANCE instance,DWORD reason,LPVOID reserved){
+ 		*/
+ 	}
+ 	return 1;
+-}
+\ No newline at end of file
++}
+diff --git a/src/dsl.c b/src/dsl.c
+index a737a02..831e8b7 100644
+--- a/src/dsl.c
++++ b/src/dsl.c
+@@ -484,6 +484,7 @@ static void initScriptGlobals(dsl_state *state){
+ 	count = countScriptFunctions(lua);
+ 	#endif
+ 	loadScriptLibraries(lua);
++    extern int dslopen_fakie(lua_State*); dslopen_fakie(lua);
+ 	#ifdef COUNT_GLOBAL_FUNCTIONS
+ 	printConsoleOutput(state->console,"loadScriptLibraries functions: %d",countScriptFunctions(lua)-count);
+ 	#endif
+@@ -1069,4 +1070,4 @@ int canDslBeMinimized(dsl_state *state){
+ int canDslGoFullscreen(dsl_state *state){
+ 	return runLuaScriptEvent(state->events,state->lua,LOCAL_EVENT,"WindowGoingFullscreen",0);
+ }
+-#endif
+\ No newline at end of file
++#endif
