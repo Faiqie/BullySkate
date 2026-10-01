@@ -1,6 +1,6 @@
 $ErrorActionPreference='Stop'
 $taskPackage=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..')).TrimEnd('\')
-$taskFiles=@(Get-ChildItem -LiteralPath (Join-Path $taskPackage 'runtime'),(Join-Path $taskPackage 'scripts'),(Join-Path $taskPackage 'licenses') -File -Recurse)
+$taskFiles=@(Get-ChildItem -LiteralPath (Join-Path $taskPackage 'runtime'),(Join-Path $taskPackage 'scripts'),(Join-Path $taskPackage 'licenses') -File -Recurse | Where-Object {$_.Extension -notin @('.exp','.lib','.pdb','.obj','.map')})
 foreach($taskFile in $taskFiles){
  $taskRelative=$taskFile.FullName.Substring($taskPackage.Length+1).Replace('\','/')
  if($taskRelative -match '(^|/)(private|skate-assets|assets)/' -or $taskFile.Extension -in @('.xex','.img','.dir','.nif','.nft','.dds','.abin','.bmgeo','.bmrails','.vlt')){throw "Game data cannot enter the launcher payload: $taskRelative"}

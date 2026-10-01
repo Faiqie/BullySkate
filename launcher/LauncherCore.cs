@@ -188,5 +188,32 @@ namespace BullySkate {
             CheckRunning(game);
             return Process.Start(GameStartInfo(game,windowed,dpiFix));
         }
+        public static bool IsSteamInstallation(string game) {
+            game=Path.GetFullPath(game).TrimEnd(Path.DirectorySeparatorChar);
+            var common=Directory.GetParent(game);if(common==null||!String.Equals(common.Name,"common",StringComparison.OrdinalIgnoreCase))return false;
+            var steamapps=common.Parent;if(steamapps==null)return false;
+            var manifest=Path.Combine(steamapps.FullName,"appmanifest_12200.acf");
+            if(!File.Exists(manifest)||new FileInfo(manifest).Length>1024*1024)return false;
+            var content=File.ReadAllText(manifest);
+            var app=Regex.Match(content,"\"appid\"\\s+\"([0-9]+)\"",RegexOptions.IgnoreCase);
+            var folder=Regex.Match(content,"\"installdir\"\\s+\"([^\"]+)\"",RegexOptions.IgnoreCase);
+            return app.Success&&app.Groups[1].Value=="12200"&&folder.Success&&String.Equals(folder.Groups[1].Value,Path.GetFileName(game),StringComparison.OrdinalIgnoreCase);
+        }
+        public static ProcessStartInfo SteamGameStartInfo(string game) {
+            if(!IsSteamInstallation(game))throw new IOException("The selected folder does not match Steam's installed Bully application.");
+            return new ProcessStartInfo("steam://rungameid/12200") {UseShellExecute=true};
+        }
+        public static void StartSteamGame(string game,bool dpiFix) {
+            CheckRunning(game);
+            var start=SteamGameStartInfo(game);
+            // A launch request uses Steam's normal authentication/startup. No
+            // replacement executable, app-id file, unpacker or DRM edits.
+            // One-use local setting lets the ASI apply DPI awareness before HWND
+            // creation even though Steam creates the game in its own environment.
+            var hint=Path.Combine(game,"_derpy_script_loader","bullyskate-launch.txt");
+            File.WriteAllText(hint,dpiFix?"dpi-aware\n":"dpi-original\n",new System.Text.UTF8Encoding(false));
+            try {using(var launch=Process.Start(start)) {}}
+            catch {if(File.Exists(hint))File.Delete(hint);throw;}
+        }
     }
 }

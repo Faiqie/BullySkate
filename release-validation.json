@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.4",
   "public_source_build": "passed",
   "public_extractor": "passed",
   "first_run_extraction_install": "passed",
@@ -12,7 +12,7 @@
   "bully_collision_rails_bind_match_previous_build": true,
   "headless_metacharacter_paths": "passed",
   "picker_entrypoint": "Actual EXE verified: STA, System.Windows.Forms, .NET 4.8 and per-monitor DPI manifest; manual picker appearance pending",
-  "live_gameplay_acceptance": "not completed for this executable-compatibility revision",
+  "live_gameplay_acceptance": "not repeated: actual owned-game startup and hook verification passed; stock Steam and visual skating acceptance pending",
   "source_distribution_audit": "passed: no game assets or personal paths",
   "embedded_payload_audit": "passed: actual EXE payload matches audited ZIP; 505 files",
   "tests": [
@@ -25,23 +25,31 @@
     "Windows launcher/child-process DPI and compatibility tests",
     "synthetic executable compatibility tests",
     "actual native ASI incompatible-host test",
-    "actual launcher metadata-variant install/idempotence/diagnosis/rejection tests"
+    "actual launcher metadata-variant install/idempotence/diagnosis/rejection tests",
+    "authored loaded-engine diagnostic tests",
+    "native SHA-256 vectors and invalid pointer checks",
+    "Steam launch manifest/URI routing tests",
+    "owned game full native startup and one-use DPI setting"
   ],
   "tested_binary_sha256": {
-    "BullySkateLauncher.exe": "6989682ca8e792f29767319d79c712ff317ff4a9db6f86ed128fe78cb909116c",
-    "runtime/derpy_script_loader.asi": "831c085ece83730dfb13a9f8b1f8558f49cdd31d2f03e74f817e9876eca01c99",
+    "BullySkateLauncher.exe": "e19277854473bd7ab439a98773f1a19ce7a8e37e444cf4475dd26b0d8c602f8a",
+    "runtime/derpy_script_loader.asi": "bfa7591f7e7d4711a2d7dda276d014091a2085bc36f066a9de78cda389099c95",
     "runtime/SkatePhysicsWorker.exe": "a5bedc1bbb181803c7ce2813d44b7830e9337490fecd470ea1081e0a270d6f74",
     "runtime/SkateAssetExtractor.exe": "910fcb7d2c70097af2b353448e382a12ab9605ce96ffc87345e87737752e49d8",
-    "runtime/BullyBuildCheck.exe": "2a163d227ac3937766c88b171ff8b2a94d9a637b9532d99b964ac588b9eda50f"
+    "runtime/BullyBuildCheck.exe": "2d81ecb3262cb5c16d5bb14058d1302b338cabcee352c779c1d93a683270b163"
   },
   "launcher_display_scaling": "passed: per-monitor launcher, 6 inherited compatibility cases with real x86 child processes, fullscreen/windowed settings, opt-out and preserved parent environment",
   "physical_display_validation": "pending: reported 4K system, mixed-DPI/multi-monitor displays and GPU hardware matrix",
-  "saved_setup_current_launcher": "passed: actual beta.3 EXE installs/verifies a different-checksum 1.200 copy, repeats idempotently and preserves paths/settings/other mods",
+  "saved_setup_current_launcher": "passed: actual beta.4 EXE installs/verifies a metadata-variant 1.200 copy, repeats idempotently and preserves paths/settings/other mods",
   "executable_layout_validation": "passed: 203 code and 19 data locations on owned 1.200 executable; PE timestamp/overlay variant accepted; changed required native-code byte rejected",
-  "synthetic_executable_tests": "passed: checksum-only header/resource/overlay variants; changed code, wrong CPU/base, readonly globals, section bounds, overlapping mappings and truncated files",
-  "native_runtime_guard": "passed: actual new x86 ASI loads and unloads in an unrelated x86 host without applying game hooks",
+  "synthetic_executable_tests": "passed: prior PE cases plus entry point in executable .bind, unrelated .bind and invalid wrapper native data",
+  "native_runtime_guard": "passed: all 203 code fingerprints and 19 data mappings before hooks in owned 1.200 startup; actual ASI skips hooks and retries safely in unrelated x86 host",
   "compatibility_diagnostics": "passed: actual launcher good/bad reports, no personal paths in saved report, incompatible setup rejected before installation",
-  "stock_steam_gameplay": "not tested: no stock Steam installation available on release machine",
-  "supported_engine_profile": "bully-pc-1.200; matching engine layouts only, not every retail executable",
-  "earlier_gameplay_and_extraction_checks": "unchanged from prior build; tests listed below include previous checks, not a claim of repeated gameplay on this revision"
+  "stock_steam_gameplay": "not tested: no stock Steam installation available on release machine; normal Steam startup and affected player compatibility need confirmation",
+  "supported_engine_profile": "bully-pc-1.200; file-verified layouts or recognized Steam wrappers with full native verification after startup",
+  "earlier_gameplay_and_extraction_checks": "unchanged from prior build; tests listed below include previous checks, not a claim of repeated gameplay on this revision",
+  "loaded_engine_diagnostics": "passed: authored native process differs from file, valid runtime accepted, changed runtime code and stopped process rejected; reports contain no personal paths",
+  "native_fingerprint_sha256": "passed: production single-block helper matches independent vectors of lengths 0,3,7,16,55; unreadable pointer and out-of-range length rejected",
+  "steam_launcher_routing": "passed: selected app manifest, fixed normal Steam URI, wrong app/folder/missing/oversized manifests and metacharacter paths; Steam client not invoked",
+  "steam_process_dpi_setting": "passed: one-use launch setting consumed and actual owned game process becomes DPI aware without a launcher compatibility environment override"
 }

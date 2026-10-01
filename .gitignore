@@ -40,6 +40,8 @@ source-path.txt
 *.previous
 /runtime/*.exe
 /runtime/*.asi
+/runtime/*.exp
+/runtime/*.lib
 /BullySkateLauncher.exe
 /deployment.sha256
 # Bundled parser tool is unused by this host.

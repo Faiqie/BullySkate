@@ -23,7 +23,7 @@ namespace BullySkate {
         }
         static Dictionary<string,string> Arguments(string[] args) {
             var result=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
-            foreach(var key in new[]{"--setup","--no-launch","--check","--fullscreen","--windowed","--no-dpi-fix","--diagnose-game","--help"})result[key]="false";
+            foreach(var key in new[]{"--setup","--no-launch","--check","--fullscreen","--windowed","--no-dpi-fix","--diagnose-game","--diagnose-running","--help"})result[key]="false";
             for(int i=0;i<args.Length;i++) {
                 var key=args[i];
                 if(result.ContainsKey(key)) {result[key]="true";continue;}
@@ -146,16 +146,20 @@ namespace BullySkate {
                     Say("--check: verify saved setup. --no-launch: prepare or verify without starting Bully.");
                     Say("Display scaling is corrected automatically. --no-dpi-fix: use original Windows scaling for troubleshooting.");
                     Say("--diagnose-game: pick Bully.exe and save a compatibility report; no installation or Skate 3 files required.");
+                    Say("--diagnose-running: leave Bully open at its menu, then pick its EXE to check the loaded engine read-only.");
                     Say("Optional: --game PATH --xex PATH --state-dir PATH --report FILE");return 0;
                 }
                 var state=Path.GetFullPath(Value(args,"--state-dir",Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"BullySkate")));
                 Directory.CreateDirectory(state);
-                if(args["--diagnose-game"]=="true") {
+                if(args["--diagnose-game"]=="true"||args["--diagnose-running"]=="true") {
+                    bool running=args["--diagnose-running"]=="true";
+                    if(running)Say("Leave your normal Bully copy running at its main menu. This check only reads its memory; it does not install, alter or close the game.");
                     var game=LauncherCore.GameFolder(Value(args,"--game",null)??PickGameFile(true,null));
-                    var info=GameCompatibility.Inspect(Path.Combine(game,"Bully.exe"));
-                    var report=Path.Combine(state,"compatibility-report.txt");
+                    var info=running?GameCompatibility.InspectRunning(Path.Combine(game,"Bully.exe")):GameCompatibility.Inspect(Path.Combine(game,"Bully.exe"));
+                    var report=Path.Combine(state,running?"running-compatibility-report.txt":"compatibility-report.txt");
                     File.WriteAllText(report,info.Report(),new UTF8Encoding(false));
                     Say(info.Report());Say("Compatibility report saved to "+report);
+                    if(!running&&GameCompatibility.CanDeferToRuntime(info))Say("Steam-wrapped file: installation is allowed, with full engine verification deferred to ASI startup.");
                     if(!Console.IsInputRedirected){Console.Write("Press Enter to close.");Console.ReadLine();}
                     return info.Supported?0:2;
                 }
@@ -181,6 +185,7 @@ namespace BullySkate {
                             game=LauncherCore.GameFolder(game);
                             var executable=Path.Combine(game,"Bully.exe");
                             GameCompatibility.Require(executable,Say);
+                            if(GameCompatibility.Inspect(executable).SteamWrapped&&!LauncherCore.IsSteamInstallation(game))throw new IOException("Choose Bully.exe from Steam's installed Bully folder. Steam > Manage > Browse local files shows the correct folder.");
                             LauncherCore.CheckRunning(game);
                             xex=Value(args,"--xex",null)??PickGameFile(false,Value(saved,"Xex",null));
                             xex=Path.GetFullPath(xex.Trim().Trim('"'));
@@ -205,9 +210,16 @@ namespace BullySkate {
                         if(args["--no-launch"]=="true") {Say("Ready. Open this launcher again to play.");return 0;}
                         bool windowed=args["--windowed"]=="true"&&args["--fullscreen"]!="true";
                         bool dpiFix=args["--no-dpi-fix"]!="true";
-                        Say("Starting Bully "+(windowed?"in an experimental borderless window":"using native display settings")+"...");
+                        bool steam=LauncherCore.IsSteamInstallation(selection.Game);
+                        if(!steam&&GameCompatibility.Inspect(Path.Combine(selection.Game,"Bully.exe")).SteamWrapped)throw new IOException("This Steam-wrapped copy must be selected from Steam's installed Bully folder. In Steam use Manage > Browse local files, then select that Bully.exe in the launcher.");
+                        Say(steam?"Starting your selected Bully installation through Steam...":"Starting Bully "+(windowed?"in an experimental borderless window":"using native display settings")+"...");
                         Say(dpiFix?"Windows display scaling correction enabled.":"Using original Windows display scaling.");
                         Say("In gameplay: F6 skating; F5 native Bully; F8 Edit Skater / FOV.");
+                        if(steam) {
+                            LauncherCore.StartSteamGame(selection.Game,dpiFix);
+                            var steamConsole=GetConsoleWindow();if(steamConsole!=IntPtr.Zero)ShowWindow(steamConsole,0);
+                            return 0;
+                        }
                         var console=GetConsoleWindow();
                         if(console!=IntPtr.Zero)ShowWindow(console,0);
                         try {using(var gameProcess=LauncherCore.StartGame(selection.Game,windowed,dpiFix))Say("Bully started. Process "+gameProcess.Id+".");}

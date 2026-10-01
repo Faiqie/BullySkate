@@ -36,6 +36,16 @@ static class GameCompatibilityTests {
         Check(Inspect(folder,"different-resources.exe",resources).Supported,"Resource-only change rejected");
         var overlay=new byte[baseline.Length+31];Array.Copy(baseline,overlay,baseline.Length);overlay[overlay.Length-1]=44;
         Check(Inspect(folder,"different-overlay.exe",overlay).Supported,"Overlay-only change rejected");
+        var wrapped=(byte[])baseline.Clone();
+        Array.Clear(wrapped,0x400,0x40);Array.Clear(wrapped,0x178+80,8);
+        Array.Copy(Encoding.ASCII.GetBytes(".bind"),0,wrapped,0x178+80,5);
+        U32(wrapped,0x178+80+36,0x60000020);U32(wrapped,0x98+16,0x3000);
+        var wrappedInfo=Inspect(folder,"steam-wrapper.exe",wrapped);
+        Check(!wrappedInfo.Supported&&wrappedInfo.CodeMatched==0&&wrappedInfo.RegionsMatched==1&&GameCompatibility.CanDeferToRuntime(wrappedInfo),"Steam wrapper was not deferred to the full native startup check");
+        U32(wrapped,0x98+16,0x1000);
+        Check(!GameCompatibility.CanDeferToRuntime(Inspect(folder,"unrelated-bind-section.exe",wrapped)),"An unrelated .bind section enabled runtime deferral");
+        U32(wrapped,0x98+16,0x3000);U32(wrapped,0x178+40+36,0x40000040);
+        Check(!GameCompatibility.CanDeferToRuntime(Inspect(folder,"wrapped-wrong-data.exe",wrapped)),"Wrapper with incompatible data layout accepted");
         var code=(byte[])baseline.Clone();code[0x401]^=1;
         Check(!Inspect(folder,"different-code.exe",code).Supported,"Changed native code accepted");
         var rebased=(byte[])baseline.Clone();U32(rebased,0x98+28,0x500000);

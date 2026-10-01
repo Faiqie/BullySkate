@@ -492,17 +492,29 @@ static HRESULT __stdcall setKeyboardCooperativeLevel(IDirectInputDevice8 *device
 }
 
 // MAIN
-static BOOL DllMain(HINSTANCE instance,DWORD reason,LPVOID reserved){
-	#ifdef START_DELAY
-	if(reason == DLL_THREAD_ATTACH && g_threadcount != START_DELAY && (++g_threadcount) == START_DELAY){
-	#else
-	if(reason == DLL_PROCESS_ATTACH){
-	#endif
-		if(!bullyNativeLayoutAvailable()){
-			OutputDebugStringA("BullySkate: native engine layout check failed; no game hooks were installed.\n");
-			motionDiagnostic("Unsupported runtime engine layout; hooks skipped",GetModuleHandleA(NULL));
-			return TRUE;
-		}
+static LONG g_engineHooksInstalled;
+static void applySteamLaunchSettings(void){
+    char setting[32]={0};FILE *hint=fopen("_derpy_script_loader/bullyskate-launch.txt","rb");
+    if(!hint)return;
+    fread(setting,1,sizeof(setting)-1,hint);fclose(hint);
+    remove("_derpy_script_loader/bullyskate-launch.txt");
+    if(!strncmp(setting,"dpi-aware\n",10)){
+        typedef BOOL (WINAPI *DpiAwareFunction)(void);
+        DpiAwareFunction aware=(DpiAwareFunction)GetProcAddress(GetModuleHandleA("user32.dll"),"SetProcessDPIAware");
+        if(aware)aware();
+    }
+}
+static void initializeVerifiedEngine(void){
+    unsigned codeMatched,dataMatched;DWORD firstMismatch;
+    if(g_engineHooksInstalled)return;
+    if(!bullyVerifyLoadedEngine(&codeMatched,&dataMatched,&firstMismatch)){
+        FILE *report=fopen("_derpy_script_loader/logs/skate-compatibility.log","a");
+        if(report){fprintf(report,"Hooks skipped. Loaded code: %u/%u. Data: %u/%u. First mismatch: 0x%08lX\n",codeMatched,(unsigned)(sizeof(bullyCodeProbes)/sizeof(bullyCodeProbes[0])),dataMatched,(unsigned)(sizeof(bullyDataProbes)/sizeof(bullyDataProbes[0])),firstMismatch);fclose(report);}
+        OutputDebugStringA("BullySkate: loaded engine not verified; game hooks skipped.\n");return;
+    }
+    if(InterlockedCompareExchange(&g_engineHooksInstalled,1,0)!=0)return;
+    applySteamLaunchSettings();
+    motionDiagnostic("Full loaded engine verified; installing hooks",GetModuleHandleA(NULL));
 		// patch lua (gc, realloc, and state functions):
 		replaceCodeWithJump(&lua_close,(void*)0x7420B0);
 		replaceCodeWithJump(&lua_newthread,(void*)0x73AE60);
@@ -624,6 +636,16 @@ static BOOL DllMain(HINSTANCE instance,DWORD reason,LPVOID reserved){
 			0x560544 setups up view and projection matrix
 			
 		*/
-	}
-	return 1;
+}
+/* UAL calls InitializeASI after loading the plugin on the game's startup path.
+   DllMain supports older loaders; a failed early check can safely retry here. */
+#pragma comment(linker,"/EXPORT:InitializeASI=_InitializeASI")
+void __cdecl InitializeASI(void){initializeVerifiedEngine();}
+static BOOL DllMain(HINSTANCE instance,DWORD reason,LPVOID reserved){
+    #ifdef START_DELAY
+    if(reason==DLL_THREAD_ATTACH&&g_threadcount!=START_DELAY&&(++g_threadcount)==START_DELAY)initializeVerifiedEngine();
+    #else
+    if(reason==DLL_PROCESS_ATTACH)initializeVerifiedEngine();
+    #endif
+    return TRUE;
 }

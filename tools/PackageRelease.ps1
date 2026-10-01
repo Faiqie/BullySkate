@@ -1,4 +1,4 @@
-param([string]$Version='0.1.0-beta.3',[string]$Python='python')
+param([string]$Version='0.1.0-beta.4',[string]$Python='python')
 $ErrorActionPreference='Stop'
 $taskRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 & $Python (Join-Path $PSScriptRoot 'AuditDistribution.py')
@@ -7,7 +7,7 @@ $taskRelease=Join-Path $taskRoot 'release'
 New-Item -ItemType Directory -Path $taskRelease -Force | Out-Null
 $taskStage=Join-Path $taskRoot ('work\release-stage-'+[Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $taskStage -Force | Out-Null
-foreach($taskName in @('BullySkateLauncher.exe','BullySkateLauncher.exe.config','README.md','THIRD_PARTY_NOTICES.md','LICENSE','Setup.cmd','Verify.cmd','CheckBully.cmd','Disable.cmd','Disable.ps1','release-validation.json')){
+foreach($taskName in @('BullySkateLauncher.exe','BullySkateLauncher.exe.config','README.md','THIRD_PARTY_NOTICES.md','LICENSE','Setup.cmd','Verify.cmd','CheckBully.cmd','CheckBullyRunning.cmd','Disable.cmd','Disable.ps1','release-validation.json')){
  Copy-Item -LiteralPath (Join-Path $taskRoot $taskName) -Destination $taskStage
 }
 foreach($taskName in @('docs','licenses')){Copy-Item -LiteralPath (Join-Path $taskRoot $taskName) -Destination $taskStage -Recurse}
