@@ -8,6 +8,8 @@ Nearby living NPCs are kinematic capsules, limited to the closest 24 within 16 m
 
 ## Local preparation
 
+Executable validation checks an embedded PC 1.200 profile: PE32/x86 image layout, 203 SHA-256 code fingerprints and 19 mapped data locations. The launcher and install-time `BullyBuildCheck.exe` share the same checker and profile. Whole-file SHA-256 is reported for diagnostics, rather than used as the acceptance gate. The native loader checks the loaded process before any game hook write. See [compatibility](COMPATIBILITY.md) for the tested scope and remaining limits.
+
 The launcher sets `HIGHDPIAWARE` in Bully's child-process compatibility environment before creating the game process, replacing inherited DPI-unaware/GDI-scaling flags while preserving unrelated flags. It changes neither global Windows scaling nor the game's rendering resolution. The launcher itself declares PerMonitorV2 awareness, with a PerMonitor fallback, and enables .NET Framework 4.8 Windows Forms DPI handling for file pickers. See [Microsoft's process DPI guidance](https://learn.microsoft.com/en-us/windows/win32/hidpi/setting-the-default-dpi-awareness-for-a-process) and [Windows Forms DPI configuration](https://learn.microsoft.com/en-us/dotnet/desktop/winforms/high-dpi-support-in-windows-forms). `--no-dpi-fix` leaves the child's original compatibility environment intact.
 
 The public launcher embeds mod code, software runtimes and checksum lists. It does not embed original or converted game assets. First setup reads the selected games without changing their archives:

@@ -2,23 +2,23 @@
 
 Skate through Bullworth as Jimmy using the Skate 3 Rust rewrite's simulation, animation and controller systems. Bully keeps its world, missions, pedestrians, traffic, audio and saves. This is an unofficial **Windows beta**.
 
-**[Download the Windows ZIP](https://github.com/Faiqie/BullySkate/releases/download/v0.1.0-beta.2/BullySkate-Windows-v0.1.0-beta.2.zip)** · [Controls](docs/CONTROLS.md) · [Build from source](docs/BUILD.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
+**[Download the Windows ZIP](https://github.com/Faiqie/BullySkate/releases/download/v0.1.0-beta.3/BullySkate-Windows-v0.1.0-beta.3.zip)** · [Controls](docs/CONTROLS.md) · [Build from source](docs/BUILD.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
 
-Players need only this ZIP: it includes the launcher, setup helpers, instructions and licenses. Extract it and run `BullySkateLauncher.exe`. Source code is a separate download using **Source code (zip)** or **Source code (tar.gz)** on the [release page](https://github.com/Faiqie/BullySkate/releases/tag/v0.1.0-beta.2), or clone this repository.
+Players need only this ZIP: it includes the launcher, setup helpers, instructions and licenses. Extract it and run `BullySkateLauncher.exe`. Source code is a separate download using **Source code (zip)** or **Source code (tar.gz)** on the [release page](https://github.com/Faiqie/BullySkate/releases/tag/v0.1.0-beta.3), or clone this repository.
 
 ## Install and play
 
-**Required Bully version: Bully Scholarship Edition for PC, version 1.200 SP Build 3.** The launcher verifies your `Bully.exe` and rejects other executable versions.
+**Required Bully version: Bully Scholarship Edition for PC, version 1.200, with a compatible native engine layout.** Steam and other PC distributions are checked by their engine code and data locations, rather than one whole-file checksum. See [compatibility and diagnosis](docs/COMPATIBILITY.md) for the tested scope.
 
-1. Download `BullySkate-Windows-v0.1.0-beta.2.zip` from Releases and extract it into a folder you can write to.
-2. Close Bully, then open `BullySkateLauncher.exe`. The terminal opens a Windows file-selection window. Select **Bully.exe** in your installed **Bully Scholarship Edition 1.200 SP Build 3** folder.
+1. Download `BullySkate-Windows-v0.1.0-beta.3.zip` from Releases and extract it into a folder you can write to.
+2. Close Bully, then open `BullySkateLauncher.exe`. The terminal opens a Windows file-selection window. Select **Bully.exe** in your installed **Bully Scholarship Edition 1.200** folder.
 3. A second file-selection window asks for **default.xex** in your own complete, extracted Xbox 360 Skate 3 folder. Select the XEX; leave the surrounding `data` folder intact.
 4. Wait while the launcher prepares the required data locally, verifies it, backs up the previous mod installation, and starts Bully. This preparation runs once; subsequent launches reuse your saved setup.
 5. Load Story, finish the cutscene, and stand on foot on solid ground. Press **F6**, or **View/Back + D-pad Left**, to start skating. Initial simulation preparation may take about 15 seconds; if it says it is preparing, wait and toggle again.
 
 You need **your own copies of both games**. The download and source repository contain **no game executables, levels, meshes, textures, animation banks, saves, or extracted physics databases**. Jimmy's rig, world collision, rails and car bounds are generated from the selected Bully files. Skate data is extracted from the selected local Skate 3 archives. The launcher does not download either game or execute Xbox code. **default.xex alone is insufficient.**
 
-Requirements: Windows 10/11 **64-bit**, .NET Framework 4.8, an installed **Bully Scholarship Edition 1.200 SP Build 3**, and the supported Xbox 360 Skate 3 asset edition. The launcher checks exact compatibility and reports unsupported files. Bully.exe SHA-256: `BD6E757DBA71F04539F0C3A66DD216F40450456F0012BECD2E14848DD3EC174E`. Other executable versions are refused because the native adapter uses version-specific addresses. Xbox/XInput controllers are supported; PlayStation controllers need an existing XInput mapping. Players do not need Python, Rust, or Visual Studio.
+Requirements: Windows 10/11 **64-bit**, .NET Framework 4.8, an installed **Bully Scholarship Edition 1.200** with the verified engine layout, and the supported Xbox 360 Skate 3 asset edition. Different executable checksums are accepted when the native locations match. Older or genuinely different engine layouts require an official game update or a separate adapter profile. Stock Steam gameplay has not been tested on the release machine. Xbox/XInput controllers are supported; PlayStation controllers need an existing XInput mapping. Players do not need Python, Rust, or Visual Studio.
 
 ## Features
 
@@ -40,7 +40,7 @@ See [all controls](docs/CONTROLS.md), [technical design](docs/ARCHITECTURE.md), 
 
 Close Bully and run the newer launcher. It verifies files before starting the game and repairs a damaged mod installation. Existing skater settings and custom configuration are preserved.
 
-Run `Setup.cmd` to select different game files; `Verify.cmd` checks your saved installation without launching. Canceling a picker preserves the previous setup. Preferences live in the game's `_derpy_script_loader/scripts/BullyMotion/skater-settings.dat`. Setup paths and extraction caches are local to `%LocalAppData%/BullySkate`; none are sent to GitHub.
+Run `Setup.cmd` to select different game files; `Verify.cmd` checks your saved installation without launching. `CheckBully.cmd` opens a Bully.exe picker and creates a compatibility report without installing anything or asking for Skate 3. Canceling a picker preserves the previous setup. Preferences live in the game's `_derpy_script_loader/scripts/BullyMotion/skater-settings.dat`. Setup paths and extraction caches are local to `%LocalAppData%/BullySkate`; none are sent to GitHub.
 
 Press F5 in gameplay to restore native Bully controls. To disable the collection with Bully closed, run the included `Disable.cmd`; it moves the collection into a recoverable disabled folder. Installation backups live under `_derpy_script_loader/motion-backups`. The installer preserves original game archives and unrelated mods. Existing unrecognized `dinput8.dll` files are refused rather than overwritten.
 

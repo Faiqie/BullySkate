@@ -20,6 +20,9 @@ jobs:
       - name: Test actual Windows child-process DPI behavior
         shell: powershell
         run: ./tools/TestLauncherDisplay.ps1
+      - name: Test executable layout detection without game files
+        shell: powershell
+        run: ./tools/TestGameCompatibility.ps1
   windows:
     runs-on: windows-2022
     timeout-minutes: 90

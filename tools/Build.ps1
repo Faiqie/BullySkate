@@ -18,7 +18,7 @@ try{
  Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'loader\render.cpp') -Destination (Join-Path $taskLoader 'src\client\render.cpp') -Force
  Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'loader\dsl.c') -Destination (Join-Path $taskLoader 'src\dsl.c') -Force
  Copy-Item -LiteralPath (Join-Path $packageRoot 'native\bridge.c') -Destination (Join-Path $taskLoader 'src\client\library\lib_fakie.c') -Force
- foreach($name in @('rig.h','viewmodel.h','skate_worker.h','skater_preferences.h','vehicles.h','vehicle_bounds.h')){
+ foreach($name in @('rig.h','viewmodel.h','skate_worker.h','skater_preferences.h','vehicles.h','vehicle_bounds.h','game_compat.h')){
   Copy-Item -LiteralPath (Join-Path $packageRoot ('native\'+$name)) -Destination (Join-Path $taskLoader ('src\client\library\'+$name)) -Force
  }
  $env:BULLY_MOTION_LOADER=$taskLoader

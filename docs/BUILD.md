@@ -18,6 +18,8 @@ The upstream rewrite's required Rust crates and the modified headless game modul
 
 BuildRelease also runs `tools/TestLauncherDisplay.ps1`. It compiles a legacy x86 DPI probe and starts it through the production launch settings, checking actual Windows DPI awareness, inherited compatibility settings and the opt-out. This opens no visible game window and requires no game files. The launcher uses a per-monitor DPI manifest and the .NET Framework 4.8 Windows Forms DPI configuration.
 
+`tools/TestGameCompatibility.ps1` exercises the production PE/layout checker against authored synthetic fixtures, including checksum-only variants and incompatible/malformed files. `tools/TestNativeCompatibilityGuard.ps1` loads the actual compiled ASI in an unrelated x86 host to verify it skips game hooks. Both run in BuildRelease without game files. `compatibility/pc-1.200.xml` contains engine interoperability fingerprints, not copied executable bytes; BuildLauncher embeds it into both the launcher and its installer checker.
+
 ## Checks
 
 ```powershell

@@ -8,6 +8,7 @@
 #include <dsl/dsl.h>
 #include <dsl/client/patch.h>
 #include <wchar.h>
+#include "library/game_compat.h"
 
 //#define START_DELAY 1 // initialize DSL after some amount of threads are created instead of immediately
 //#define DEBUG_THREADS
@@ -497,6 +498,11 @@ static BOOL DllMain(HINSTANCE instance,DWORD reason,LPVOID reserved){
 	#else
 	if(reason == DLL_PROCESS_ATTACH){
 	#endif
+		if(!bullyNativeLayoutAvailable()){
+			OutputDebugStringA("BullySkate: native engine layout check failed; no game hooks were installed.\n");
+			motionDiagnostic("Unsupported runtime engine layout; hooks skipped",GetModuleHandleA(NULL));
+			return TRUE;
+		}
 		// patch lua (gc, realloc, and state functions):
 		replaceCodeWithJump(&lua_close,(void*)0x7420B0);
 		replaceCodeWithJump(&lua_newthread,(void*)0x73AE60);

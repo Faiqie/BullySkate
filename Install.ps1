@@ -20,8 +20,8 @@ $taskBullyEntries=@(Get-Content -LiteralPath (Join-Path $taskBullyAssets 'asset-
 if($taskRequired.Count){throw 'Incomplete locally prepared Bully data.'}
 $exe=Join-Path $taskGame 'Bully.exe'
 if(!(Test-Path -LiteralPath $exe -PathType Leaf)){throw 'Bully.exe was not found.'}
-$hash=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
-if($hash -ne 'BD6E757DBA71F04539F0C3A66DD216F40450456F0012BECD2E14848DD3EC174E'){throw 'This build requires the verified Bully 1.200 SP Build 3 executable.'}
+& (Join-Path $PSScriptRoot 'runtime\BullyBuildCheck.exe') $exe
+if($LASTEXITCODE){throw 'The executable does not match the supported Bully native engine layout. Run CheckBully.cmd for details.'}
 if(!(Test-Path -LiteralPath $taskAssets -PathType Container)){throw 'The Skate rewrite assets folder was not found.'}
 foreach($relative in @('Scripts\Scripts.img','Act\Act.img')){
  if(!(Test-Path -LiteralPath (Join-Path $taskGame $relative) -PathType Leaf)){throw "Select the complete Bully game folder; $relative is missing."}

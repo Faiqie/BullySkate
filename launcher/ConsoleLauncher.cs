@@ -23,7 +23,7 @@ namespace BullySkate {
         }
         static Dictionary<string,string> Arguments(string[] args) {
             var result=new Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
-            foreach(var key in new[]{"--setup","--no-launch","--check","--fullscreen","--windowed","--no-dpi-fix","--help"})result[key]="false";
+            foreach(var key in new[]{"--setup","--no-launch","--check","--fullscreen","--windowed","--no-dpi-fix","--diagnose-game","--help"})result[key]="false";
             for(int i=0;i<args.Length;i++) {
                 var key=args[i];
                 if(result.ContainsKey(key)) {result[key]="true";continue;}
@@ -145,10 +145,20 @@ namespace BullySkate {
                     Say("--setup: change game paths / re-extract. --fullscreen: keep the native display path.");
                     Say("--check: verify saved setup. --no-launch: prepare or verify without starting Bully.");
                     Say("Display scaling is corrected automatically. --no-dpi-fix: use original Windows scaling for troubleshooting.");
+                    Say("--diagnose-game: pick Bully.exe and save a compatibility report; no installation or Skate 3 files required.");
                     Say("Optional: --game PATH --xex PATH --state-dir PATH --report FILE");return 0;
                 }
                 var state=Path.GetFullPath(Value(args,"--state-dir",Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"BullySkate")));
                 Directory.CreateDirectory(state);
+                if(args["--diagnose-game"]=="true") {
+                    var game=LauncherCore.GameFolder(Value(args,"--game",null)??PickGameFile(true,null));
+                    var info=GameCompatibility.Inspect(Path.Combine(game,"Bully.exe"));
+                    var report=Path.Combine(state,"compatibility-report.txt");
+                    File.WriteAllText(report,info.Report(),new UTF8Encoding(false));
+                    Say(info.Report());Say("Compatibility report saved to "+report);
+                    if(!Console.IsInputRedirected){Console.Write("Press Enter to close.");Console.ReadLine();}
+                    return info.Supported?0:2;
+                }
                 using(var mutex=new Mutex(false,"Local\\BullySkateConsoleLauncher")) {
                     bool acquired;
                     try {acquired=mutex.WaitOne(0);}catch(AbandonedMutexException){acquired=true;}
@@ -170,7 +180,7 @@ namespace BullySkate {
                             game=Value(args,"--game",null)??PickGameFile(true,Value(saved,"Game",null));
                             game=LauncherCore.GameFolder(game);
                             var executable=Path.Combine(game,"Bully.exe");
-                            if(!LauncherCore.Matches(executable,LauncherCore.GameHash))throw new InvalidDataException("Select Bully Scholarship Edition 1.200 SP Build 3. Bully.exe is missing or a different version.");
+                            GameCompatibility.Require(executable,Say);
                             LauncherCore.CheckRunning(game);
                             xex=Value(args,"--xex",null)??PickGameFile(false,Value(saved,"Xex",null));
                             xex=Path.GetFullPath(xex.Trim().Trim('"'));

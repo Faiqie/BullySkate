@@ -1,5 +1,7 @@
 # Validation and beta limits
 
+The executable compatibility update passes the local 1.200 game's 203 code probes and 19 data-region checks. A private copy with changed PE timestamp and appended metadata passes despite a different whole-file checksum; changing a required native-code byte is rejected. Synthetic fixtures also exercise resource-only changes, malformed/truncated files, overlapping mappings, architecture/base differences and non-writable native data. The actual new ASI loads and unloads in an unrelated x86 host while skipping game hooks. Stock Steam gameplay and all other retail builds remain unverified; the check admits matching engine layouts rather than promising every executable works.
+
 The display update has been checked with real x86 child processes: the launcher runs per-monitor DPI aware, the game launch settings remove Windows bitmap scaling across six inherited compatibility cases, and fullscreen/windowed flags, parent settings and the opt-out are preserved. Physical testing across 4K displays, mixed-DPI multi-monitor setups and different GPUs has not been completed. These process tests establish the scaling behavior, not visual acceptance on every machine.
 
 The public packaging change has been checked against the original private installation. Local conversion reproduces the same Bully world collision, grind rails and Jimmy bind-rig files. Native car bounds are now loaded from locally generated data instead of compiled into the ASI. No source physics solve or active rig-retarget logic was replaced for packaging.

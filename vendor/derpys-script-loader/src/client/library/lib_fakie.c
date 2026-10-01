@@ -6,6 +6,7 @@
 #include <xinput.h>
 #include <stdint.h>
 #include <stddef.h>
+#include "game_compat.h"
 
 typedef struct Vec { float x,y,z; } Vec;
 static int readable(const void *p,size_t bytes);
@@ -48,9 +49,7 @@ static void poll_keys(void){
 }
 
 static int compatible(void) {
-    return GetModuleHandle(NULL)==(HMODULE)0x400000 &&
-        !memcmp((void*)0x461EA0,"\x83\xec\x3c\x66\x81\x3d\x88\xae\xc1\x00\xff\xff",12) &&
-        !memcmp((void*)0x5C83B0,"\x83\xec\x0c\x56\x8b\x74\x24\x14",8);
+    return bullyNativeLayoutAvailable();
 }
 static int FS_Available(lua_State *lua) {
     enabled=compatible(); lua_pushboolean(lua,enabled); return 1;

@@ -14,7 +14,6 @@ namespace BullySkate {
         public string Game, Assets, BullyAssets;
     }
     public static class LauncherCore {
-        public const string GameHash="BD6E757DBA71F04539F0C3A66DD216F40450456F0012BECD2E14848DD3EC174E";
         public static readonly string[] LoaderNames={"dinput8.dll","dsound.dll","version.dll","winmm.dll","d3d9.dll"};
         public static string Hash(string path) {
             using(var stream=File.OpenRead(path)) using(var hash=SHA256.Create())
@@ -86,7 +85,7 @@ namespace BullySkate {
             progress("Checking your Bully folder...");
             var exe=Path.Combine(game,"Bully.exe");
             if(!File.Exists(exe))throw new FileNotFoundException("Bully.exe was not found. Browse to your Bully game folder.");
-            if(!Matches(exe,GameHash))throw new InvalidDataException("This build needs Bully Scholarship Edition 1.200 SP Build 3. The selected executable is a different version.");
+            GameCompatibility.Require(exe,progress);
             foreach(var relative in new[]{"Scripts/Scripts.img","Act/Act.img"})
                 if(!File.Exists(Below(game,relative)))throw new FileNotFoundException("Select the complete Bully folder. Missing: "+relative);
             CheckRunning(game);
