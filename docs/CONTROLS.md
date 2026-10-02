@@ -1,6 +1,16 @@
 # Controls
 
-Controller names use the Xbox/XInput layout. View/Back is the small button to the left of Guide. Native Bully controls apply when skate mode is off.
+DualShock 4 and DualSense work directly over USB or Bluetooth. The table below uses Xbox names; use these PlayStation equivalents. Native Bully controls apply when skate mode is off.
+
+| Xbox | PlayStation |
+|---|---|
+| A / B / X / Y | Cross / Circle / Square / Triangle |
+| LB / RB | L1 / R1 |
+| LT / RT | L2 / R2 |
+| View / Back | Touchpad click or Share/Create |
+| Start | Options |
+
+For example, **Touchpad + D-pad Left** enables skating, **Touchpad + D-pad Up** opens Edit Skater, and **L1 + D-pad Down** sets a marker.
 
 | Action | Controller | Keyboard |
 |---|---|---|

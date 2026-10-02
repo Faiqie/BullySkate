@@ -111,6 +111,7 @@ namespace BullySkate {
             if(!HasLoader(package,game))return false;
             if(!Matches(Path.Combine(collection,"SkatePhysicsWorker.exe"),Hash(Path.Combine(package,"runtime","SkatePhysicsWorker.exe"))))return false;
             if(!Matches(Path.Combine(collection,"vcruntime140.dll"),Hash(Path.Combine(package,"runtime","worker-dependencies","vcruntime140.dll"))))return false;
+            if(!Matches(Path.Combine(collection,"SDL3.dll"),Hash(Path.Combine(package,"runtime","controller-dependencies","SDL3.dll"))))return false;
             if(!File.Exists(Path.Combine(game,"vcruntime140.dll")))return false;
             var sourcePath=Path.Combine(collection,"source-path.txt");
             if(!File.Exists(sourcePath)||!String.Equals(File.ReadAllText(sourcePath).Trim(),assets,StringComparison.OrdinalIgnoreCase))return false;

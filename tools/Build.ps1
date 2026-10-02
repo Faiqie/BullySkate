@@ -9,7 +9,7 @@ if(!$TargetDirectory){$TargetDirectory=Join-Path $chatRoot 'work\motion-target'}
 $taskTarget=[IO.Path]::GetFullPath($TargetDirectory)
 $taskLibrary=Join-Path $taskTarget 'i686-pc-windows-msvc\release\bully_motion.lib'
 $previous=@{}
-foreach($name in @('BULLY_MOTION_LOADER','BULLY_MOTION_LIB','BULLY_MOTION_OUTPUT')){$previous[$name]=[Environment]::GetEnvironmentVariable($name,'Process')}
+foreach($name in @('BULLY_MOTION_LOADER','BULLY_MOTION_LIB','BULLY_MOTION_OUTPUT','BULLY_SDL_INCLUDE')){$previous[$name]=[Environment]::GetEnvironmentVariable($name,'Process')}
 Push-Location $chatRoot
 try{
  & $Python (Join-Path $PSScriptRoot 'GenerateNativeProfile.py')
@@ -20,12 +20,13 @@ try{
  Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'loader\render.cpp') -Destination (Join-Path $taskLoader 'src\client\render.cpp') -Force
  Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'loader\dsl.c') -Destination (Join-Path $taskLoader 'src\dsl.c') -Force
  Copy-Item -LiteralPath (Join-Path $packageRoot 'native\bridge.c') -Destination (Join-Path $taskLoader 'src\client\library\lib_fakie.c') -Force
- foreach($name in @('rig.h','viewmodel.h','skate_worker.h','skater_preferences.h','vehicles.h','vehicle_bounds.h','game_compat.h','game_layout_fingerprints.h')){
+ foreach($name in @('rig.h','viewmodel.h','skate_worker.h','skater_preferences.h','vehicles.h','vehicle_bounds.h','game_compat.h','game_layout_fingerprints.h','controller_input.h')){
   Copy-Item -LiteralPath (Join-Path $packageRoot ('native\'+$name)) -Destination (Join-Path $taskLoader ('src\client\library\'+$name)) -Force
  }
  $env:BULLY_MOTION_LOADER=$taskLoader
  $env:BULLY_MOTION_LIB=$taskLibrary
  $env:BULLY_MOTION_OUTPUT=Join-Path $packageRoot 'runtime\derpy_script_loader.asi'
+ $env:BULLY_SDL_INCLUDE=Join-Path $packageRoot 'vendor\SDL3\include'
  & (Join-Path $PSScriptRoot 'Build.cmd')
  if($LASTEXITCODE){throw 'Native loader build failed.'}
  Write-Output "Build ready: $env:BULLY_MOTION_OUTPUT"

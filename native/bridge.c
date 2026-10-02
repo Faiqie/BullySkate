@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "game_compat.h"
+#include "controller_input.h"
 
 typedef struct Vec { float x,y,z; } Vec;
 static int readable(const void *p,size_t bytes);
@@ -34,6 +35,38 @@ static int rig_active=0;
 static float rig_pose[36][13];
 static float board_pose[2][13];
 static int focused(void) { return GetForegroundWindow()==getGameWindow(); }
+static BS_ControllerInput controller_input;
+static BS_PadState controller_state;
+static wchar_t controller_library[MAX_PATH];
+/* Called after Bully reads the primary controller, including while paused.
+ * Options follows the native pause binding, without sending global keystrokes. */
+void fakieUpdateController(void *raw) {
+    game_controller *controller=(game_controller*)raw;
+    static unsigned previous;
+    unsigned pause,held;
+    int index=getGamePrimaryControllerIndex();
+    if(index<0||index>3||controller!=getGameControllers()+index)return;
+    if(!controller_library[0]) {
+        DWORD length=GetModuleFileNameW(NULL,controller_library,MAX_PATH);
+        wchar_t *slash;
+        if(!length||length>=MAX_PATH){controller_library[0]=0;return;}
+        slash=wcsrchr(controller_library,L'\\');
+        if(!slash||wcscpy_s(slash+1,MAX_PATH-(slash+1-controller_library),L"_derpy_script_loader\\scripts\\BullyMotion\\SDL3.dll"))return;
+    }
+    controller_state=bs_controller_poll(&controller_input,controller_library,focused(),GetTickCount64());
+    held=controller_state.kind>=2?controller_state.buttons&16:0;
+    if(controller_state.kind>=2) {
+        if(controller->is_joy) {
+            pause=(unsigned)getGameBindingsBasic()[15];
+            controller->input.joystick.buttons&=(short)~pause;
+            controller->pressed&=~pause;controller->released&=~pause;
+            if(held)controller->input.joystick.buttons|=(short)pause;
+            if(held&&!previous)controller->pressed|=pause;
+            if(!held&&previous)controller->released|=pause;
+        } else if(held)controller->input.keyboard[DIK_ESCAPE]=0x80;
+    }
+    previous=held;
+}
 static unsigned char key_down[256],key_edge[256];static int keys_focused=0;
 static void poll_keys(void){
  static const unsigned char watched[]={8,13,27,32,37,38,39,40,65,68,69,82,83,87,116,117,118,119,120,121,160};
@@ -93,19 +126,13 @@ static int FS_Trace(lua_State *lua) {
     lua_pushnumber(lua,ped_id);lua_pushnumber(lua,model);return 9;
 }
 static int FS_Pad(lua_State *lua) {
-    XINPUT_STATE state; DWORD index; int ok=0;
-    memset(&state,0,sizeof(state));
     poll_keys();
-    if(focused()) for(index=0;index<4;index++) if(XInputGetState(index,&state)==ERROR_SUCCESS) {ok=1;break;}
-    lua_pushboolean(lua,ok);
-    lua_pushnumber(lua,state.Gamepad.wButtons);
-    lua_pushnumber(lua,state.Gamepad.sThumbLX/32768.0f);
-    lua_pushnumber(lua,state.Gamepad.sThumbLY/32768.0f);
-    lua_pushnumber(lua,state.Gamepad.sThumbRX/32768.0f);
-    lua_pushnumber(lua,state.Gamepad.sThumbRY/32768.0f);
-    lua_pushnumber(lua,state.Gamepad.bLeftTrigger/255.0f);
-    lua_pushnumber(lua,state.Gamepad.bRightTrigger/255.0f);
-    return 8;
+    lua_pushboolean(lua,controller_state.connected);
+    lua_pushnumber(lua,controller_state.buttons);
+    lua_pushnumber(lua,controller_state.lx);lua_pushnumber(lua,controller_state.ly);
+    lua_pushnumber(lua,controller_state.rx);lua_pushnumber(lua,controller_state.ry);
+    lua_pushnumber(lua,controller_state.lt);lua_pushnumber(lua,controller_state.rt);
+    lua_pushnumber(lua,controller_state.kind);return 9;
 }
 static int FS_Key(lua_State *lua) {
     int key=(int)luaL_checknumber(lua,1),valid=key>0&&key<256&&focused();
@@ -114,7 +141,7 @@ static int FS_Key(lua_State *lua) {
 static int FS_Active(lua_State *lua) {
     lua_pushboolean(lua,focused()&&!getGamePaused()&&!getGameMinimized());return 1;
 }
-/* Source input comes directly from XInput/Win32. Suppress native movement on
+/* Source input comes directly from SDL/XInput/Win32. Suppress native movement on
  * the selected controller while keeping Escape/Start available to pause. */
 static void mute_gameplay_input(game_controller *controller,unsigned pause_mask){
  unsigned char escape=(unsigned char)controller->input.keyboard[1];

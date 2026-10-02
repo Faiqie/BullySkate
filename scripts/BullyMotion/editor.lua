@@ -131,11 +131,11 @@ function EditorDraw()
  end
  if editorPage=="controls" then
   text("CONTROLLER",0.263,0.305,0.020)
-  text("Left stick: steer | A: push | B: brake",0.263,0.349,0.017)
-  text("Right stick: Flick-It | LT / RT: grabs",0.263,0.390,0.017)
-  text("D-pad: gestures | View + Up: this menu",0.263,0.431,0.017)
-  text("View + Left: Skate | View + Down: Bully",0.263,0.472,0.016)
-  text("LB + Down: marker | Hold LB + Up: respawn",0.263,0.505,0.016)
+  text(PadText("Left stick: steer | A: push | B: brake","Left stick: steer | Cross: push | Circle: brake"),0.263,0.349,0.017)
+  text(PadText("Right stick: Flick-It | LT / RT: grabs","Right stick: Flick-It | L2 / R2: grabs"),0.263,0.390,0.017)
+  text(PadText("D-pad: gestures | View + Up: this menu","D-pad: gestures | Touchpad + Up: this menu"),0.263,0.431,0.017)
+  text(PadText("View + Left: Skate | View + Down: Bully","Touchpad + Left: Skate | Touchpad + Down: Bully"),0.263,0.472,0.015)
+  text(PadText("LB + Down: marker | Hold LB + Up: respawn","L1 + Down: marker | Hold L1 + Up: respawn"),0.263,0.505,0.016)
   text("KEYBOARD",0.263,0.538,0.020)
   text("WASD: steer | Space: push | S: brake",0.263,0.582,0.017)
   text("Shift: ollie | F6: Skate | F5: Bully",0.263,0.623,0.017)
@@ -146,5 +146,5 @@ function EditorDraw()
   if count>7 then text(string.format("%d / %d",row,count),0.67,0.184,0.014) end
  end
  text("D-pad / Left stick: select | Left / Right: adjust",0.263,0.791,0.015)
- text("A / Enter: open | B / Backspace: back | F8: close",0.263,0.832,0.014)
+ text(PadText("A / Enter: open | B / Backspace: back | F8: close","Cross / Enter: open | Circle / Backspace: back | F8: close"),0.263,0.832,0.014)
 end

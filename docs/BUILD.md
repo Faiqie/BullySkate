@@ -22,6 +22,8 @@ BuildRelease also runs `tools/TestLauncherDisplay.ps1`. It compiles a legacy x86
 
 ## Checks
 
+`tools/TestControllerInput.ps1` exercises the production x86 input reader with SDL virtual DS4 and DualSense controllers: buttons, signed sticks, analog triggers, shortcuts, focus changes, hotplug and XInput fallback. No physical controller or game files are required. SDL's pinned headers, x86 DLL and license are included; only its gamepad subsystem is initialized.
+
 ```powershell
 python -m unittest discover -s tests -p "test_*.py"
 cargo test --lib

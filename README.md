@@ -2,13 +2,13 @@
 
 Skate around Bullworth as Jimmy with Skate 3 physics and controller support.
 
-**[Download BullySkate](https://github.com/Faiqie/BullySkate/releases/download/v0.1.0/BullySkate-Windows-v0.1.0.zip)**
+**[Download BullySkate](https://github.com/Faiqie/BullySkate/releases/download/v0.1.1/BullySkate-Windows-v0.1.1.zip)**
 
 ## What you need
 
 - **Bully Scholarship Edition for Windows, version 1.200.** Steam users should select their installed game and keep Steam signed in.
 - Your own complete, extracted **Xbox 360 Skate 3** files. Keep `default.xex` and its surrounding `data` folder together.
-- Windows 10 or 11, 64-bit. Xbox/XInput controllers are supported.
+- Windows 10 or 11, 64-bit. Xbox/XInput, DualShock 4 and DualSense controllers are supported.
 
 Neither game is included.
 
@@ -21,6 +21,8 @@ Neither game is included.
 5. Load your save, stand on foot, and press **F6** to skate.
 
 After setup, open the same launcher to play. Your file paths and skater settings are saved.
+
+For PlayStation controllers, connect by USB or pair through Windows Bluetooth. No controller mapper is needed for skating. Use **Touchpad + D-pad Left** to skate, **Touchpad + D-pad Up** for Edit Skater, and **Touchpad + D-pad Down** to return to Bully. Share/Create also works in place of Touchpad.
 
 ## Features
 
@@ -38,8 +40,8 @@ After setup, open the same launcher to play. Your file paths and skater settings
 | Skate mode | F6 | View/Back + D-pad Left |
 | Native Bully mode | F5 | View/Back + D-pad Down |
 | Edit Skater / FOV | F8 | View/Back + D-pad Up |
-| Set marker | F7 | LB + D-pad Down |
-| Respawn | Hold F10 | Hold LB + D-pad Up |
+| Set marker | F7 | LB / L1 + D-pad Down |
+| Respawn | Hold F10 | Hold LB / L1 + D-pad Up |
 
 [All controls](docs/CONTROLS.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
 

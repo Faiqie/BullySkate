@@ -80,6 +80,7 @@ foreach($name in @('BrownJacket_d.dds','sg_mainmap_d.dds','spudg_d.dds','WP00_li
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\derpy_script_loader.asi') -Destination (Join-Path $taskGame 'derpy_script_loader.asi') -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\SkatePhysicsWorker.exe') -Destination (Join-Path $collection 'SkatePhysicsWorker.exe') -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\worker-dependencies\vcruntime140.dll') -Destination (Join-Path $collection 'vcruntime140.dll') -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\controller-dependencies\SDL3.dll') -Destination (Join-Path $collection 'SDL3.dll') -Force
 $nativeRuntime=Join-Path $taskGame 'vcruntime140.dll'
 if(!(Test-Path -LiteralPath $nativeRuntime)){
  Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\native-dependencies\vcruntime140.dll') -Destination $nativeRuntime

@@ -10,9 +10,9 @@
 
 **Black scene or cropped screen:** use the normal launcher and Bully's fullscreen settings. Choose your rendering resolution in the game's graphics menu. Avoid forcing borderless mode or adding graphics wrappers while troubleshooting.
 
-**Controller:** connect an Xbox/XInput controller before launching. PlayStation controllers need an XInput mapping.
+**Controller:** connect an Xbox/XInput controller, DualShock 4 or DualSense by USB, or pair it through Windows Bluetooth. PlayStation controllers work directly in the skating mod. If another program hides your PlayStation controller, turn that program off for direct input, or use its Xbox mapping. Native Bully controls apply outside skate mode.
 
-**Skitching:** match the car's speed, approach its rear bumper and hold RB. Board strikes also use RB; they need the board to contact a nearby pedestrian.
+**Skitching:** match the car's speed, approach its rear bumper and hold RB / R1. Board strikes also use RB / R1; they need the board to contact a nearby pedestrian.
 
 **Updating or disabling:** close Bully before running a newer launcher. Use F5 for native movement, or `Disable.cmd` to disable the mod. Reopening the launcher re-enables it.
 

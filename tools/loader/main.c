@@ -36,6 +36,7 @@ void initDslContent(void*); // a good point to do content replacements
 void updateDslKeyboard(void*,char*);
 void updateDslMouse(void*,DIMOUSESTATE*);
 void updateDslController(void*,void*);
+void fakieUpdateController(void*);
 void updateDslControllers(void*);
 void updateDslBeforeSystem(void*);
 void updateDslAfterSkipped(void*);
@@ -256,6 +257,7 @@ static void __cdecl skipGameUpdate(void *arg){
 static void __cdecl updateController(void *controller){
 	assertSameThread();
 	(*(void(__cdecl*)(void*))0x738570)(controller);
+	fakieUpdateController(controller);
 	if(g_dsl && controller == (char*)0x20CECF0 + 0x914 * 3)
 		updateDslControllers(g_dsl);
 }

@@ -3,6 +3,8 @@ mode,menu,row=0,false,1
 physicalBoard=nil
 yaw,speed,feet=0,0,0
 oldButtons,oldKeys=0,{}
+padKind=1
+function PadText(xbox,playstation) return padKind>=2 and playstation or xbox end
 savedWeapon,savedBoard=nil,0
 boardOwned=false
 useFullSkate,usePhysicalBoard=true,true
@@ -82,7 +84,7 @@ function switch()
   if usePhysicalBoard then physicalBoard=FS_SkateNew(x,y,feet,yaw,AreaGetVisible()) end
   if not physicalBoard then restore();say("Skate mount failed; Bully controls restored");return end
   local physical,tow,hits=FS_SkateInteraction();hitSequence=hits
-  say("A / Space push | Y / E off board | RB / R swing board or hold behind a car")
+  say(PadText("A / Space push | Y / E off board | RB / R swing board or hold behind a car","Cross: push | Triangle: off board | R1: swing board / skitch"))
  end
 end
 function text(s,x,y,h,r,g,b)
@@ -131,7 +133,7 @@ function updateInteraction(now,x,y,z)
   end
  end
  if tow~=towVehicle then
-  if tow~=4294967295 then say("Skitching: release RB / R or brake to let go") end
+  if tow~=4294967295 then say(PadText("Skitching: release RB / R or brake to let go","Skitching: release R1 / R or brake to let go")) end
   towVehicle=tow
  end
 end
@@ -139,7 +141,7 @@ function drawing()
  while true do
   if FS_Active() and GetCutsceneRunning()==0 then
    if mode==1 and markerModifier and not menu then
-    text("LB + Down: set marker | Hold LB + Up: respawn",0.04,0.095,0.017)
+    text(PadText("LB + Down: set marker | Hold LB + Up: respawn","L1 + Down: set marker | Hold L1 + Up: respawn"),0.04,0.095,0.017)
     if markerProgress>0 then DrawRectangle(0.04,0.126,0.23*markerProgress,0.005,203,190,128,235) end
    end
    if GetTimer()<hintEnd then text(hint,0.04,0.06,0.019) end
@@ -166,7 +168,8 @@ function main()
  local last=GetTimer();local lastArea=AreaGetVisible()
  while true do
   local now=GetTimer();local dt=clamp((now-last)/1000,0,0.1);last=now
-  local connected,buttons,lx,ly,rx,ry,lt,rt=FS_Pad()
+  local connected,buttons,lx,ly,rx,ry,lt,rt,kind=FS_Pad()
+  if kind>0 then padKind=kind end
   local function pressed(n) return bit(buttons,n) and not bit(oldButtons,n) end
   local back=bit(buttons,32)
   local active=FS_Active()

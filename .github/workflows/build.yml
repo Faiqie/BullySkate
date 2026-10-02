@@ -34,6 +34,9 @@ jobs:
       - name: Test launcher Steam routing without game files
         shell: powershell
         run: ./tools/TestSteamLaunch.ps1
+      - name: Test direct PlayStation input and Xbox fallback
+        shell: powershell
+        run: ./tools/TestControllerInput.ps1
   windows:
     runs-on: windows-2022
     timeout-minutes: 90
