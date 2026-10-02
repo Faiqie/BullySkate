@@ -37,7 +37,26 @@ static float board_pose[2][13];
 static int focused(void) { return GetForegroundWindow()==getGameWindow(); }
 static BS_ControllerInput controller_input;
 static BS_PadState controller_state;
-static wchar_t controller_library[MAX_PATH];
+static wchar_t controller_library[32768];
+static void poll_controller(void) {
+    static int reported=0;
+    if(!controller_library[0]) {
+        DWORD capacity=(DWORD)(sizeof(controller_library)/sizeof(controller_library[0]));
+        DWORD length=GetModuleFileNameW(NULL,controller_library,capacity);
+        const wchar_t *relative=L"_derpy_script_loader\\scripts\\BullyMotion\\SDL3.dll";
+        wchar_t *slash;
+        if(!length||length>=capacity){controller_library[0]=0;return;}
+        slash=wcsrchr(controller_library,L'\\');
+        if(!slash||capacity-(slash+1-controller_library)<=wcslen(relative)){controller_library[0]=0;return;}
+        wcscpy_s(slash+1,capacity-(slash+1-controller_library),relative);
+    }
+    controller_state=bs_controller_poll(&controller_input,controller_library,focused(),GetTickCount64());
+    if(!reported) {
+        FILE *file=fopen("_derpy_script_loader/logs/skate-input.log","a");
+        if(file){fprintf(file,"PlayStation input: %s\n",controller_input.ready?"ready":"unavailable; using Xbox input");fclose(file);}
+        reported=1;
+    }
+}
 /* Called after Bully reads the primary controller, including while paused.
  * Options follows the native pause binding, without sending global keystrokes. */
 void fakieUpdateController(void *raw) {
@@ -45,15 +64,10 @@ void fakieUpdateController(void *raw) {
     static unsigned previous;
     unsigned pause,held;
     int index=getGamePrimaryControllerIndex();
+    static int entered=0;
+    if(!entered){FILE *file=fopen("_derpy_script_loader/logs/skate-input.log","a");if(file){fprintf(file,"Controller hook started\n");fclose(file);}entered=1;}
+    if(controller==getGameControllers())poll_controller();
     if(index<0||index>3||controller!=getGameControllers()+index)return;
-    if(!controller_library[0]) {
-        DWORD length=GetModuleFileNameW(NULL,controller_library,MAX_PATH);
-        wchar_t *slash;
-        if(!length||length>=MAX_PATH){controller_library[0]=0;return;}
-        slash=wcsrchr(controller_library,L'\\');
-        if(!slash||wcscpy_s(slash+1,MAX_PATH-(slash+1-controller_library),L"_derpy_script_loader\\scripts\\BullyMotion\\SDL3.dll"))return;
-    }
-    controller_state=bs_controller_poll(&controller_input,controller_library,focused(),GetTickCount64());
     held=controller_state.kind>=2?controller_state.buttons&16:0;
     if(controller_state.kind>=2) {
         if(controller->is_joy) {
@@ -127,6 +141,7 @@ static int FS_Trace(lua_State *lua) {
 }
 static int FS_Pad(lua_State *lua) {
     poll_keys();
+    poll_controller();
     lua_pushboolean(lua,controller_state.connected);
     lua_pushnumber(lua,controller_state.buttons);
     lua_pushnumber(lua,controller_state.lx);lua_pushnumber(lua,controller_state.ly);
