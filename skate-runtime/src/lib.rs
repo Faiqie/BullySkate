@@ -122,6 +122,7 @@ impl SkateHost {
   Ok(Self{physics,skater,controls,graphs,camera,input:Default::default(),retarget:None,actors:Vec::new(),preferences:Default::default(),marker,geometry:None,area:0,vehicles:Vec::new(),interactions:Default::default(),actor_age:0.})
  }
  pub fn configure(&mut self,preferences:SkaterPreferences){
+  self.physics.set_difficulty(if preferences.motorized{difficulty::Difficulty::Motorized}else{difficulty::Difficulty::Easy});
   self.physics.set_equipment_preferences(preferences.trucks,preferences.wheels);
   self.physics.set_gesture_preferences(Some(preferences.gestures));
   self.skater.animation.set_customisation(preferences.stance,preferences.style);
@@ -131,12 +132,12 @@ impl SkateHost {
  pub fn marker_status(&self)->(u32,u32,u32,f32){(self.marker.flags,self.marker.sets,self.marker.returns,self.marker.progress)}
  pub fn clear_marker(&mut self){self.marker.clear();}
  pub fn suspend_marker(&mut self){self.marker.suspend();}
- pub fn actors(&mut self,records:&[[f32;7]]){
+ pub fn actors(&mut self,records:&[[f32;9]]){
   use skate_dynamics::rapier3d::prelude::Vector;
   self.actors.clear();self.actor_age=0.;
   for r in records.iter().take(24){
    if r.iter().any(|v|!v.is_finite())||r[0]<0.{continue}
-   self.actors.push(bully_actors::Actor{id:r[0] as u64,position:Vector::new(r[1],r[3],-r[2]),velocity:Vector::new(r[4],r[6],-r[5]).clamp_length_max(15.)});
+   self.actors.push(bully_actors::Actor::with_dimensions(r[0] as u64,Vector::new(r[1],r[3],-r[2]),Vector::new(r[4],r[6],-r[5]).clamp_length_max(15.),r[7],r[8]));
   }
  }
  pub fn vehicles(&mut self,records:&[[f32;16]]){self.vehicles=records.iter().take(8).filter_map(bully_vehicles::Vehicle::from_record).collect();}
@@ -170,5 +171,5 @@ impl SkateHost {
  /// Explicit initial velocity for offline host probes; ordinary gameplay uses
  /// the recovered state/force owners to produce every subsequent velocity.
  pub fn seed_velocity(&mut self,value:[f32;3]){for b in self.physics.board.bodies_mut(){b.rates.linear_velocity=skate_core::math::Vector3::new(value[0],value[1],value[2]);}}
- pub fn status(&self)->String{format!("ticks={} state={:?} contacts={} clip={:?} pose_bones={} rider_com={:?} held={} shove={} tow={:?} hits={}",self.physics.ticks,self.skater.player_state.current(),self.physics.contact_count,self.skater.animation.motion.animation.current_name,self.skater.render_pose.len(),self.skater.skeleton.record.centre_of_mass,self.skater.player_input.physical.off_board.flag_311,self.skater.animation.motion.animation.channels.has("Shove"),self.interactions.tow,self.interactions.hits)}
+ pub fn status(&self)->String{format!("ticks={} mode={} state={:?} contacts={} clip={:?} pose_bones={} rider_com={:?} held={} shove={} tow={:?} hits={}",self.physics.ticks,self.physics.difficulty_index(),self.skater.player_state.current(),self.physics.contact_count,self.skater.animation.motion.animation.current_name,self.skater.render_pose.len(),self.skater.skeleton.record.centre_of_mass,self.skater.player_input.physical.off_board.flag_311,self.skater.animation.motion.animation.channels.has("Shove"),self.interactions.tow,self.interactions.hits)}
 }

@@ -1,6 +1,35 @@
 """Area-specific grind candidates, prepared only on the user's computer."""
 from pathlib import Path
 import numpy as np,struct,json
+
+def connect_edges(points):
+    """Join short authored ledge pieces into continuous, gently turning rails."""
+    if len(points)==0:return []
+    flat=points.reshape(-1,3)
+    _,first,ids=np.unique(np.rint(flat*1000).astype(np.int64),axis=0,return_index=True,return_inverse=True)
+    vertices=flat[first];edges=ids.reshape(-1,2);adj={}
+    for i,(a,b) in enumerate(edges):
+        adj.setdefault(int(a),[]).append(i);adj.setdefault(int(b),[]).append(i)
+    used=set();chains=[]
+    order=sorted(range(len(edges)),key=lambda i: min(len(adj[int(v)]) for v in edges[i])==2)
+    for seed in order:
+        if seed in used:continue
+        a,b=map(int,edges[seed])
+        if len(adj[a])==2 and len(adj[b])!=2:a,b=b,a
+        chain=[a,b];used.add(seed)
+        while len(chain)<4096:
+            previous,current=chain[-2:]
+            candidates=[i for i in adj[current] if i not in used]
+            if len(adj[current])!=2 or len(candidates)!=1:break
+            i=candidates[0];other=int(edges[i,0] if edges[i,1]==current else edges[i,1])
+            incoming=vertices[current]-vertices[previous];outgoing=vertices[other]-vertices[current]
+            cosine=np.dot(incoming,outgoing)/(np.linalg.norm(incoming)*np.linalg.norm(outgoing))
+            if cosine<0.64:break
+            used.add(i);chain.append(other)
+            if other==chain[0]:break
+        rail=vertices[chain]
+        if np.linalg.norm(np.diff(rail,axis=0),axis=1).sum()>=0.7:chains.append(rail)
+    return chains
 def export(root):
     raw=(root/'world.bmgeo').read_bytes()
     assert raw[:8]==b'BMGEO2\0\0'
@@ -18,10 +47,13 @@ def export(root):
         length=np.linalg.norm(delta,axis=1);horizontal=np.linalg.norm(delta[:,[0,2]],axis=1)
         dot=np.einsum('ij,ij->i',na,nb);convex=np.einsum('ij,ij->i',delta,np.cross(na,nb))>=-1e-6
         top_side=((na[:,1]>0.65)&(nb[:,1]<0.45))|((nb[:,1]>0.65)&(na[:,1]<0.45))
-        mask=top_side&convex&(dot<0.85)&(length>0.6)&(length<100)&(np.abs(delta[:,1])<horizontal*0.65)
+        mask=top_side&convex&(dot<0.85)&(length>0.12)&(length<100)&(np.abs(delta[:,1])<horizontal*0.85)
         selected=a[mask];points=np.stack([p[selected//3,selected%3],p[selected//3,(selected%3+1)%3]],axis=1)
-        for edge in points:output.append(struct.pack('<6fHH',*edge.ravel(),int(area),0))
-        reports[int(area)]={'triangles':len(p),'rails':len(points),'shared_edges':len(pairs)}
-    (root/'world.bmrails').write_bytes(b'BMRL2\0\0\0'+struct.pack('<I',len(output))+b''.join(output))
+        chains=connect_edges(points)
+        for chain in chains:
+            output.append(struct.pack('<HH',int(area),len(chain))+np.asarray(chain,dtype='<f4').tobytes())
+        reports[int(area)]={'triangles':len(p),'rails':len(chains),'candidate_segments':len(points),'shared_edges':len(pairs)}
+    if len(output)>65535:raise ValueError('Too many grind rails')
+    (root/'world.bmrails').write_bytes(b'BMRL3\0\0\0'+struct.pack('<I',len(output))+b''.join(output))
     report={'areas':reports,'convex_top_grind_edges':len(output)}
     return report

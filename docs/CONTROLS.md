@@ -15,6 +15,7 @@ For example, **Touchpad + D-pad Left** enables skating, **Touchpad + D-pad Up** 
 | Action | Controller | Keyboard |
 |---|---|---|
 | Toggle skate mode | View/Back + D-pad Left | F6 |
+| Toggle Bully / Skate | Click both sticks (L3 + R3) | F6 |
 | Return to native Bully | View/Back + D-pad Down | F5 |
 | Edit Skater / skating FOV menu | View/Back + D-pad Up | F8 |
 | Steer / move | Left stick | WASD |
@@ -23,6 +24,7 @@ For example, **Touchpad + D-pad Left** enables skating, **Touchpad + D-pad Up** 
 | Flick-It tricks / ollies / flips / manuals | Right-stick gestures | Left Shift for a basic ollie; advanced stick gestures require a controller |
 | Grab | LT / RT | Controller recommended |
 | Get off / get back on the board | Y | E |
+| Interact with Bully doors, shops or missions | Get off the board, then X / Square | Enter |
 | Swing held board on foot | Press RB while facing a nearby pedestrian | R |
 | Retrieve a dropped board | RB | R |
 | Skitch | Hold RB close behind a moving street car, matching its speed | Hold R |
@@ -37,9 +39,13 @@ For example, **Touchpad + D-pad Left** enables skating, **Touchpad + D-pad Up** 
 
 Use the right stick for tricks and the triggers for grabs.
 
+Interaction hands control back to Bully so its normal prompts and animations work. Click both sticks to skate again. Switching modes skips the board mounting animation.
+
 Markers last for the game session and survive switching between Skate and Bully. They reset when the visible Bully area changes or the game session restarts. Set another marker after an area transition. Respawning requires a short hold that increases with distance; release cancels it. View/Back and LB reserve their D-pad combinations so they do not trigger gestures.
 
 ## Menu
+
+Motorized mode is available under Edit Skater and saves with your other settings.
 
 | Action | Controller | Keyboard |
 |---|---|---|

@@ -132,7 +132,7 @@ def extract_bully(game, destination):
         names=['jimmy-bind.json','vehicle-bounds.txt','world.bmgeo','world.bmrails']
         lines=[digest(stage/name)+'  '+name for name in names]
         (stage/'asset-manifest.sha256').write_text('\n'.join(lines)+'\n',encoding='ascii')
-        (stage/'receipt.json').write_text(json.dumps({'schema':2,'game':str(game),'directory_sha256':digest(directory),
+        (stage/'receipt.json').write_text(json.dumps({'schema':3,'game':str(game),'directory_sha256':digest(directory),
             'triangles':world['triangles'],'rails':rails['convex_top_grind_edges']},indent=2))
         stage.rename(destination)
     print('Bully preparation verified: collision, rails, rig and vehicle bounds; original archives preserved.',flush=True)

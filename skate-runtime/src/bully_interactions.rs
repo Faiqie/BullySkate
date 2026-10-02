@@ -9,11 +9,11 @@ pub struct Interactions {
  pub tow:Option<u64>,pub hand:Option<super::bully_vehicles::HandAnchor>,pub hits:u32,pub hit_id:u32,
  rb:bool,cooldown:f32,attack:Option<Attack>,
 }
-struct Attack {id:u64,age:f32,old:[Vector;3],hit:bool}
-fn deck_points(physics:&GamePhysics)->[Vector;3]{
+struct Attack {id:u64,age:f32,old:[Vector;9],hit:bool}
+fn deck_points(physics:&GamePhysics)->[Vector;9]{
  let deck=physics.board.part_transforms()[6];let center=Vector::new(deck.translation.x,deck.translation.y,deck.translation.z);
  let forward=Vector::from_array(deck.basis.columns[2])*0.41;
- [center,center-forward,center+forward]
+ std::array::from_fn(|i|center+forward*(i as f32/4.-1.))
 }
 fn rider(skater:&SkaterRuntime)->(Vector,Vector){
  let root=skater.animated_skeleton.roots.animation_to_world;
@@ -28,7 +28,7 @@ impl Interactions {
   if skater.player_input.pending_teleport().is_some(){self.suspend();return}
   if category==500&&edge&&self.cooldown==0.&&skater.player_input.physical.off_board.flag_311!=0{
    let target=actors.iter().filter(|a|{
-    let d=a.position-root;d.x*d.x+d.z*d.z<1.65*1.65&&d.y.abs()<1.1&&d.dot(forward)>0.05
+    let d=a.position-root;d.x*d.x+d.z*d.z<2.1*2.1&&d.y.abs()<1.4&&d.dot(forward)>0.05
    }).min_by(|a,b|a.position.distance_squared(root).total_cmp(&b.position.distance_squared(root)));
    if let Some(a)=target{self.attack=Some(Attack{id:a.id,age:0.,old:deck_points(physics),hit:false});self.cooldown=0.75;}
   }
@@ -36,7 +36,7 @@ impl Interactions {
    attack.age+=dt;
    if category!=500||attack.age>0.65{self.attack=None;}else if attack.age<0.09{
     if let Some(a)=actors.iter().find(|a|a.id==attack.id){
-     let point=[a.position.x,a.position.y+1.,a.position.z,1.].map(f32::to_bits);
+     let point=[a.position.x,a.position.y+a.height*0.6,a.position.z,1.].map(f32::to_bits);
      skater.player_input.player.probe.bytes_72_73[0]=1;
      skater.player_input.player.probe.vectors_16_32_48=[point;3];
     }
@@ -74,10 +74,10 @@ impl Interactions {
  pub fn after(&mut self,physics:&GamePhysics,skater:&SkaterRuntime,actors:&[Actor]){
   let Some(attack)=&mut self.attack else{return};let points=deck_points(physics);
   if attack.age>=0.10&&!attack.hit&&skater.animation.motion.animation.channels.has("Shove"){
-   if let Some(actor)=actors.iter().find(|a|a.id==attack.id){
+   for actor in actors{
     let body=solid(actor);
     if points.iter().zip(attack.old).any(|(to,from)|sweep_sphere(std::slice::from_ref(&body),from.to_array(),to.to_array(),0.19).is_some()){
-     attack.hit=true;self.hits=self.hits.wrapping_add(1);self.hit_id=actor.id as u32;
+     attack.hit=true;self.hits=self.hits.wrapping_add(1);self.hit_id=actor.id as u32;break;
     }
    }
   }

@@ -5,7 +5,7 @@ typedef struct SkateInput {float dt;DWORD buttons;float axes[6];} SkateInput;
 typedef struct SkateShared {
  volatile DWORD ready;DWORD command,success;
  float mount[4],dt;DWORD buttons;float axes[6];
- DWORD actor_count;float actors[24][7];float aspect;
+ DWORD actor_count;float actors[24][9];float aspect;
  float output[14],pose[36][13],board[2][13],camera[7],root[3];
  DWORD has_camera;char error[2048];SkaterPreferences preferences;
  DWORD marker_flags,marker_sets,marker_returns;float marker_progress;
@@ -13,7 +13,7 @@ typedef struct SkateShared {
  DWORD mount_area,actor_revision,vehicle_count,vehicle_revision;float vehicles[8][16];
  DWORD interaction[4];
 } SkateShared;
-_Static_assert(sizeof(SkateShared)==5724,"Skate worker protocol must match x64 layout");
+_Static_assert(sizeof(SkateShared)==5920,"Skate worker protocol must match x64 layout");
 typedef struct SkateSnapshot {
  float output[14],pose[36][13],board[2][13],camera[7],root[3];
  DWORD has_camera,marker_flags,marker_sets,marker_returns;float marker_progress;
@@ -21,7 +21,7 @@ typedef struct SkateSnapshot {
 } SkateSnapshot;
 static SkateSnapshot skate_snapshot;
 static SkateInput skate_inputs[8];static unsigned skate_input_count;
-static float skate_actors[24][7];static DWORD skate_actor_count;
+static float skate_actors[24][9];static DWORD skate_actor_count;
 static DWORD skate_actor_revision,skate_vehicle_count,skate_vehicle_revision,skate_mount_area;
 static float skate_vehicles[8][16];
 static int skate_snapshot_valid;static DWORD skate_pending_type;
@@ -108,7 +108,7 @@ static int skate_request(DWORD command,DWORD timeout){
  return skate_shared->success!=0;
 }
 static void *ipc_skate_mount(float x,float y,float z,float yaw){
- if(!skate_health()||!skate_finish(0))return NULL;
+ if(!skate_health()||!skate_finish(40))return NULL;
  skate_shared->mount[0]=x;skate_shared->mount[1]=y;skate_shared->mount[2]=z;skate_shared->mount[3]=yaw;
  skate_shared->actor_count=0;skate_actor_count=0;skate_input_count=0;skate_snapshot_valid=0;
  skate_shared->input_count=0;
@@ -131,7 +131,7 @@ static int ipc_skate_marker_clear(void){
 }
 static uint32_t ipc_skate_actors(void *handle,const float *records,uint32_t count){
  if(!handle||!records||count>24||!skate_health())return 0;
- skate_actor_count=count;memcpy(skate_actors,records,count*7*sizeof(float));skate_actor_revision++;return 1;
+ skate_actor_count=count;memcpy(skate_actors,records,count*9*sizeof(float));skate_actor_revision++;return 1;
 }
 static uint32_t ipc_skate_step(void *handle,float dt,uint32_t buttons,float lx,float ly,float rx,float ry,float lt,float rt,float *out){
  float axes[6]={lx,ly,rx,ry,lt,rt};unsigned i;SkateInput *input;
@@ -147,7 +147,7 @@ static uint32_t ipc_skate_step(void *handle,float dt,uint32_t buttons,float lx,f
  if(!skate_pending){
   skate_shared->input_count=skate_input_count;memcpy(skate_shared->inputs,skate_inputs,skate_input_count*sizeof(SkateInput));
   skate_shared->dt=input->dt;skate_shared->buttons=input->buttons;memcpy(skate_shared->axes,input->axes,sizeof(input->axes));
-  skate_shared->actor_count=skate_actor_count;memcpy(skate_shared->actors,skate_actors,skate_actor_count*7*sizeof(float));
+  skate_shared->actor_count=skate_actor_count;memcpy(skate_shared->actors,skate_actors,skate_actor_count*9*sizeof(float));
   skate_shared->actor_revision=skate_actor_revision;
   skate_shared->vehicle_count=skate_vehicle_count;skate_shared->vehicle_revision=skate_vehicle_revision;
   memcpy(skate_shared->vehicles,skate_vehicles,skate_vehicle_count*16*sizeof(float));

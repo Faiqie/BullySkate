@@ -1,4 +1,4 @@
-param([string]$Version='0.1.1',[string]$Python='python')
+param([string]$Version='0.1.2',[string]$Python='python')
 $ErrorActionPreference='Stop'
 $taskRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 & $Python (Join-Path $PSScriptRoot 'AuditDistribution.py')

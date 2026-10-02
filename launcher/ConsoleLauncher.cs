@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -195,7 +196,9 @@ namespace BullySkate {
                         } else {
                             game=saved["Game"];xex=saved["Xex"];assets=saved["Assets"];Say("Using your saved setup.");
                             bullyAssets=Value(saved,"BullyAssets",null);
-                            if(bullyAssets==null) {
+                            var receipt=bullyAssets==null?null:Path.Combine(bullyAssets,"receipt.json");
+                            bool currentGeometry=receipt!=null&&File.Exists(receipt)&&Regex.IsMatch(File.ReadAllText(receipt),@"""schema""\s*:\s*3\b");
+                            if(!currentGeometry) {
                                 if(args["--check"]=="true")throw new IOException("Run the launcher normally once to prepare your local Bully collision and rig data.");
                                 LauncherCore.CheckRunning(game);bullyAssets=ExtractBully(package,state,game);saveSetup=true;
                             }

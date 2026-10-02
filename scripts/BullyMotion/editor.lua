@@ -1,5 +1,5 @@
 -- Controller and keyboard editor. The native bridge saves only changed values.
-skaterOptions={1,0.7,0.7,0,0,0,1,2,3,67}
+skaterOptions={1,0.7,0.7,0,0,0,1,2,3,67,0}
 editorPage,editorRepeats,editorConfigure,editorNextConfigure="home",{},true,0
 editorResumeAt=0
 gestureNames={"Air guitar","Airplane","Boxing","Bruce Lee","Check time","Devil horns","Double finger guns","Dunno","Finger wag","Fists","Bicep flex","Flip table","Fonz","Freedom","Fist salute","Get away","Get outta here","Handcuffs","High pump","Low pump","Prewind","Peace","Point","Raise the roof","Shaka","Shrug","Point at sky","Snap","Soul arch","Spock","Surf's up","Swing high","Swing low","Throw arms","Thumbs down","Wings","Yard sale"}
@@ -34,6 +34,7 @@ function EditorRows()
   {"Wheels",3,"percent",nil,"Soft to hard: adjusts the source wheel slide response."},
   {"Style",4,"enum",{"Default","Loose","Gonzo","Aggressive"},"Changes the source movement animation style."},
   {"Posture",5,"enum",{"Default","Stiff","Slouch","Buff"},"Posture blends in when the next movement starts."},
+  {"Motorized mode",11,"enum",{"Off","On"},"Use Skate 3's motorized mode."},
   {"Gestures",nil,"gestures",nil,"Assign an animation to each D-pad direction."},
   {"Reset skater",nil,"reset",nil,"Restore stance, equipment, style, posture and gestures."},
   {"Back",nil,"home"}}
@@ -72,14 +73,14 @@ function EditorActivate()
  elseif action=="close" then EditorClose()
  elseif action=="reset" then
   local defaults={1,0.7,0.7,0,0,0,1,2,3};local k
-  for k=1,9 do skaterOptions[k]=defaults[k] end;EditorSave();say("Skater settings reset")
+  for k=1,9 do skaterOptions[k]=defaults[k] end;skaterOptions[11]=0;EditorSave();say("Skater settings reset")
  elseif action=="resetfov" then
   skaterOptions[10]=67;EditorSave();if mode==1 then CameraSetFOV(67) end
  else editorPage=action;row=1;editorRepeats={} end
 end
 function EditorBack()
  if editorPage=="home" then EditorClose()
- elseif editorPage=="gestures" then editorPage="skater";row=6;editorRepeats={}
+ elseif editorPage=="gestures" then editorPage="skater";row=7;editorRepeats={}
  else editorPage="home";row=1;editorRepeats={} end
 end
 function EditorPulse(name,held,edge,now)
@@ -134,7 +135,7 @@ function EditorDraw()
   text(PadText("Left stick: steer | A: push | B: brake","Left stick: steer | Cross: push | Circle: brake"),0.263,0.349,0.017)
   text(PadText("Right stick: Flick-It | LT / RT: grabs","Right stick: Flick-It | L2 / R2: grabs"),0.263,0.390,0.017)
   text(PadText("D-pad: gestures | View + Up: this menu","D-pad: gestures | Touchpad + Up: this menu"),0.263,0.431,0.017)
-  text(PadText("View + Left: Skate | View + Down: Bully","Touchpad + Left: Skate | Touchpad + Down: Bully"),0.263,0.472,0.015)
+  text("Click both sticks: Bully / Skate",0.263,0.472,0.017)
   text(PadText("LB + Down: marker | Hold LB + Up: respawn","L1 + Down: marker | Hold L1 + Up: respawn"),0.263,0.505,0.016)
   text("KEYBOARD",0.263,0.538,0.020)
   text("WASD: steer | Space: push | S: brake",0.263,0.582,0.017)

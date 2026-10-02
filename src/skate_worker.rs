@@ -20,15 +20,15 @@ struct InputFrame {dt:f32,buttons:u32,axes:[f32;6]}
 struct Shared {
  ready:u32,command:u32,success:u32,
  mount:[f32;4],dt:f32,buttons:u32,axes:[f32;6],
- actor_count:u32,actors:[[f32;7];24],aspect:f32,
+ actor_count:u32,actors:[[f32;9];24],aspect:f32,
  output:[f32;14],pose:[[f32;13];36],board:[[f32;13];2],camera:[f32;7],root:[f32;3],
- has_camera:u32,error:[u8;2048],preferences:[f32;10],
+ has_camera:u32,error:[u8;2048],preferences:[f32;11],
  marker_flags:u32,marker_sets:u32,marker_returns:u32,marker_progress:f32,
  input_count:u32,inputs:[InputFrame;8],
  mount_area:u32,actor_revision:u32,vehicle_count:u32,vehicle_revision:u32,vehicles:[[f32;16];8],
  interaction:[u32;4],
 }
-const _: [();5724]=[();std::mem::size_of::<Shared>()];
+const _: [();5920]=[();std::mem::size_of::<Shared>()];
 fn wide(value:&str)->Vec<u16>{value.encode_utf16().chain(Some(0)).collect()}
 fn log(message:&str){
  if let Ok(mut file)=std::fs::OpenOptions::new().create(true).append(true).open(r"_derpy_script_loader\logs\skate-worker.log"){

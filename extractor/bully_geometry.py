@@ -15,6 +15,11 @@ class BullyColFile:
                 bounds=SimpleNamespace(min=struct.unpack_from('<3f',raw,52),max=struct.unpack_from('<3f',raw,68))))
             offset+=size
         return SimpleNamespace(models=models)
+
+def physical_collision(model):
+    # The other world COL channels contain NOGO/WALKABLE navigation volumes.
+    # They overlap real scenery but are not solid geometry for the player.
+    return model.minor_type == 1
 def export_vehicle_bounds(models,path):
     lines=['BMVB1']
     for model in [286,*range(290,298)]:
@@ -110,6 +115,7 @@ def export(game,output_root):
         return points,materials
     prepared={}
     for id,m in models.items():
+        if not physical_collision(m):continue
         try:prepared[id]=geometry(m)
         except (ValueError,struct.error) as e:skipped.append((id,m.major_type,m.minor_type,str(e)))
     target=output_root/'world.bmgeo'

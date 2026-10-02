@@ -22,6 +22,22 @@ pub fn load(path:&std::path::Path,spawn:[f32;3],heading:f32,area:u32)->Result<Sk
 }
 fn load_rails(path:&std::path::Path,area:u32)->Result<Vec<Rail>,String>{
  let data=std::fs::read(path).map_err(|e|format!("{}: {e}",path.display()))?;
+ if data.len()>=12&&&data[..8]==b"BMRL3\0\0\0"{
+  let count=u32::from_le_bytes(data[8..12].try_into().unwrap()) as usize;
+  if count>65535{return Err("Invalid Bully grind count".into())}
+  let mut cursor=12;let mut rails=Vec::new();
+  for i in 0..count{
+   if cursor+4>data.len(){return Err("Truncated Bully grind rail".into())}
+   let rail_area=u16::from_le_bytes(data[cursor..cursor+2].try_into().unwrap()) as u32;
+   let n=u16::from_le_bytes(data[cursor+2..cursor+4].try_into().unwrap()) as usize;cursor+=4;
+   if n<2||n>4096||cursor+n*12>data.len(){return Err("Invalid Bully grind points".into())}
+   let points:Vec<[f32;3]>=data[cursor..cursor+n*12].chunks_exact(12).map(|p|std::array::from_fn(|a|f32::from_le_bytes(p[a*4..a*4+4].try_into().unwrap()))).collect();cursor+=n*12;
+   if points.iter().flatten().any(|v|!v.is_finite()){return Err("Non-finite Bully grind point".into())}
+   if rail_area==area{let closed=points.first()==points.last();rails.push(Rail{name:format!("Bullworth ledge {i}"),points,closed,native:None});}
+  }
+  if cursor!=data.len(){return Err("Unexpected Bully grind trailing data".into())}
+  return Ok(rails)
+ }
  if data.len()<12||&data[..8]!=b"BMRL2\0\0\0"{return Err("Invalid Bully grind header".into())}
  let count=u32::from_le_bytes(data[8..12].try_into().unwrap()) as usize;
  if count>65535||data.len()!=12+count*28{return Err("Invalid Bully grind length".into())}

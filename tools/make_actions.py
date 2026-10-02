@@ -45,6 +45,14 @@ for name, (ped, board, loop) in STATES.items():
 \t\t\t\tparam00032 false
 \t\t\t}
 '''
+    text += '''\t\t\tSetWeaponFlags
+\t\t\t{
+\t\t\t\tparam00008 false
+\t\t\t\tparam00012 0.000000
+\t\t\t\tparam00024 true
+\t\t\t\tparam00028 0
+\t\t\t}
+'''
     text += animation("Animation", ped, loop) + animation("WeaponAnimation", board, loop)
     text += "\t\t}\n\t}\n"
 text += "}\n"

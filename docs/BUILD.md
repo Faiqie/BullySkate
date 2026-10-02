@@ -22,6 +22,8 @@ BuildRelease also runs `tools/TestLauncherDisplay.ps1`. It compiles a legacy x86
 
 ## Checks
 
+`tools/TestGameplay.cmd` runs the production Lua 5.0.2 scripts and native input helpers against authored fixtures, including mode switching, board recovery, context handoff and migration of saved skater preferences. The Python tests cover physical collision filtering and connected grind edges.
+
 `tools/TestControllerInput.ps1` exercises the production x86 input reader with SDL virtual DS4 and DualSense controllers: buttons, signed sticks, analog triggers, shortcuts, focus changes, hotplug and XInput fallback. No physical controller or game files are required. SDL's pinned headers, x86 DLL and license are included; only its gamepad subsystem is initialized.
 
 ```powershell

@@ -2,7 +2,7 @@
 
 Skate around Bullworth as Jimmy with Skate 3 physics and controller support.
 
-**[Download BullySkate](https://github.com/Faiqie/BullySkate/releases/download/v0.1.1/BullySkate-Windows-v0.1.1.zip)**
+**[Download BullySkate](https://github.com/Faiqie/BullySkate/releases/download/v0.1.2/BullySkate-Windows-v0.1.2.zip)**
 
 ## What you need
 
@@ -29,6 +29,7 @@ For PlayStation controllers, connect by USB or pair through Windows Bluetooth. N
 - Jimmy and his skateboard animated for skating.
 - Tricks, manuals, grabs, bails and controller Flick-It controls.
 - Edit Skater: stance, trucks, wheels, gestures, style and posture.
+- Motorized mode in Edit Skater.
 - Skating FOV slider, session markers and respawn.
 - Board strikes against pedestrians and skitching behind cars.
 - Display-scaling correction, performance improvements and installation backups.
@@ -38,10 +39,14 @@ For PlayStation controllers, connect by USB or pair through Windows Bluetooth. N
 | Action | Keyboard | Controller |
 |---|---|---|
 | Skate mode | F6 | View/Back + D-pad Left |
+| Toggle Bully / Skate | F6 | Click both sticks (L3 + R3) |
 | Native Bully mode | F5 | View/Back + D-pad Down |
 | Edit Skater / FOV | F8 | View/Back + D-pad Up |
 | Set marker | F7 | LB / L1 + D-pad Down |
 | Respawn | Hold F10 | Hold LB / L1 + D-pad Up |
+| Bully interaction | Enter | Get off the board, then X / Square |
+
+Interactions return control to Bully for doors, shops and missions. Click both sticks to skate again. Escape / Start / Options opens Bully's pause menu while skating.
 
 [All controls](docs/CONTROLS.md) · [Troubleshooting](docs/TROUBLESHOOTING.md)
 

@@ -1,10 +1,12 @@
-param([string]$Python='python',[string]$Version='0.1.1')
+param([string]$Python='python',[string]$Version='0.1.2')
 $ErrorActionPreference='Stop'
 $taskRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 & (Join-Path $PSScriptRoot 'BuildActions.ps1') -Python $Python
 & (Join-Path $PSScriptRoot 'Build.ps1') -Python $Python
 & (Join-Path $PSScriptRoot 'TestNativeCompatibilityGuard.ps1')
 & (Join-Path $PSScriptRoot 'TestControllerInput.ps1')
+& (Join-Path $PSScriptRoot 'TestGameplay.cmd')
+if($LASTEXITCODE){throw 'Gameplay regression tests failed.'}
 & (Join-Path $PSScriptRoot 'BuildWorker.ps1')
 & (Join-Path $PSScriptRoot 'BuildExtractor.ps1') -Python $Python
 & (Join-Path $PSScriptRoot 'BuildLauncher.ps1') -Python $Python
