@@ -2,8 +2,6 @@
 
 Skate around Bullworth as Jimmy with Skate 3 physics and controller support.
 
-**[Download BullySkate](https://github.com/Faiqie/BullySkate/releases/download/v0.1.2/BullySkate-Windows-v0.1.2.zip)**
-
 ## What you need
 
 - **Bully Scholarship Edition for Windows, version 1.200.** Steam users should select their installed game and keep Steam signed in.
@@ -22,23 +20,7 @@ Neither game is included.
 
 After setup, open the same launcher to play. Your file paths and skater settings are saved.
 
-For PlayStation controllers, connect by USB or pair through Windows Bluetooth. No controller mapper is needed for skating. **R3 + D-pad Down** switches Skate / Bully; **R3 + D-pad Left** opens the Skate menu.
-
-## Features
-
-- Jimmy and his skateboard animated for skating.
-- Tricks, manuals, grabs, bails and controller Flick-It controls.
-- Edit Skater: stance, trucks, wheels, gestures, style and posture.
-- Easy, Normal, Hardcore, Motorized and Easy + Motorized difficulties.
-- High and Low skating cameras, FOV slider, session markers and respawn.
-- Board strikes against pedestrians and skitching behind cars.
-- Skate 3 board sounds matched to Bully's surface materials.
-- Connected grind edges throughout the map.
-- F8 > Video: fullscreen, borderless, VSync, filtering and frame limit.
-- Live Performance settings with Balanced and Low CPU presets.
-- Free camera with teleport, and on-screen control help you can hide.
-- Keeps current DSL installations and other script mods.
-- Display-scaling correction, performance improvements and installation backups.
+**R3 + D-pad Down** switches Skate / Bully; **R3 + D-pad Left** opens the Skate menu.
 
 ## Main controls
 
