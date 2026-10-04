@@ -31,7 +31,7 @@ impl Retarget {
   Ok(Self{bones,source,mapping})
  }
  pub fn names(&self)->impl Iterator<Item=&str>{self.bones.iter().map(|b|b.name.as_str())}
- pub fn world_pose(&self,skater:&SkaterRuntime,hand_target:Option<super::bully_vehicles::HandAnchor>)->[[f32;13];36]{
+ pub fn world_pose(&self,skater:&SkaterRuntime,board:&[[f32;13];2],hand_target:Option<super::bully_vehicles::HandAnchor>)->[[f32;13];36]{
   let c=convert();let (animation,origin)=parts(&skater.animated_skeleton.roots.animation_to_world);
   let mut globals=[(Mat3::IDENTITY,Vec3::ZERO);36];let pose=&skater.render_pose;
   for(i,bone)in self.bones.iter().enumerate(){
@@ -81,6 +81,51 @@ impl Retarget {
    let next_knee=anchor+axis*projection+bend*height;let next_foot=anchor+axis*d;
    globals[knee].1=next_knee;globals[foot].1=next_foot;
   }
+  // Solve a native rim grip in deck space. Jimmy's palm sits outside the
+  // edge, his thumb meets the upper face and his fingers wrap underneath.
+  // These offsets and joint angles were fitted to his original skinned hand,
+  // rather than assuming the wrist or an arbitrary palm point is the contact.
+  let holding=skater.player_input.physical.off_board.flag_311!=0;
+  let selected=skater.board_possession.state.selected_hand_424;
+  let grip=if holding {match selected {0=>Some((20,21,22)),1=>Some((28,29,30)),_=>None}}else{None};
+  if let Some((upper,elbow,hand))=grip {
+   let source_wrist=c*(animation*parts(&pose[self.mapping[hand].unwrap()]).1+origin);
+   let rotation=Mat3::from_cols_slice(&board[0][..9]).transpose();
+   let board_origin=Vec3::from_slice(&board[0][9..12]);
+   let local=rotation.inverse()*(source_wrist-board_origin);
+   let side=if local.x<0.{-1.}else{1.};
+   let across=rotation.x_axis.normalize()*side;let normal=rotation.z_axis.normalize();
+   let wrist_rotation=Mat3::from_cols(-normal,across,(-normal).cross(across))*Mat3::from_rotation_z(0.214719);
+   let contact=board_origin+rotation*Vec3::new(side*0.1475,local.y.clamp(-0.38,0.38),0.130224);
+   let target=contact+across*0.022148+normal*0.082912;
+   globals[hand].0=wrist_rotation;
+   let source_elbow=c*(animation*parts(&pose[self.mapping[elbow].unwrap()]).1+origin);
+   let l1=native(&self.bones[upper]).1.distance(native(&self.bones[elbow]).1);
+   let l2=native(&self.bones[elbow]).1.distance(native(&self.bones[hand]).1);
+   // A swing can exceed the two arm segments' reach. Rotate the native
+   // clavicle toward the grip before solving the elbow, keeping all three
+   // segment lengths instead of stretching the arm or dropping the board.
+   let clavicle=upper-1;let pivot=globals[clavicle].1;
+   let shoulder_length=native(&self.bones[clavicle]).1.distance(native(&self.bones[upper]).1);
+   let reach=l1+l2-0.001;let to_target=target-pivot;let distance=to_target.length();
+   if globals[upper].1.distance(target)>reach&&distance>0.001&&distance<shoulder_length+reach {
+    let axis=to_target/distance;
+    let projection=((shoulder_length*shoulder_length+distance*distance-reach*reach)/(2.*distance)).clamp(-shoulder_length,shoulder_length);
+    let hint=globals[upper].1-pivot;let bend=(hint-axis*hint.dot(axis)).normalize_or_zero();
+    let bend=if bend.length_squared()>0.5{bend}else{axis.cross(Vec3::Z).normalize_or_zero()};
+    globals[upper].1=pivot+axis*projection+bend*(shoulder_length*shoulder_length-projection*projection).max(0.).sqrt();
+   }
+   let anchor=globals[upper].1;let delta=target-anchor;let axis=delta.normalize_or_zero();
+   if axis.length_squared()>0.5 {
+    let d=delta.length().clamp((l1-l2).abs()+0.0001,l1+l2-0.0001);
+    let projection=(l1*l1-l2*l2+d*d)/(2.*d);
+    let height=(l1*l1-projection*projection).max(0.).sqrt();
+    let hint=source_elbow-anchor;let bend=(hint-axis*hint.dot(axis)).normalize_or_zero();
+    let bend=if bend.length_squared()>0.5{bend}else{axis.cross(Vec3::Z).normalize_or_zero()};
+    globals[elbow].1=anchor+axis*projection+bend*height;
+    globals[hand].1=anchor+axis*d;
+   }
+  }
   if let Some(car)=hand_target{
    let mut target=Vec3::from_array(car.center);let (upper,elbow,hand)=(28,29,30);
    let facing=(target-globals[2].1)*Vec3::new(1.,1.,0.);
@@ -119,6 +164,27 @@ impl Retarget {
    let desired=(globals[child].1-globals[joint].1).normalize_or_zero();
    if predicted.length_squared()>0.5 && desired.length_squared()>0.5 {
     globals[joint].0=Mat3::from_quat(Quat::from_rotation_arc(predicted,desired))*globals[joint].0;
+   }
+  }
+  // Recompose unanimated native fingers and shoulder helpers after IK and
+  // limb rotations. Otherwise skin weights still follow their old pose.
+  for i in 1..35 {
+   if self.mapping[i].is_some(){continue}
+   let parent=self.bones[i].parent;
+   if parent<0{continue}
+   let p=parent as usize;let (bind,bind_pos)=native(&self.bones[i]);
+   let (parent_bind,parent_pos)=native(&self.bones[p]);
+   let delta=globals[p].0*parent_bind.inverse();
+   globals[i]=(delta*bind,globals[p].1+delta*(bind_pos-parent_pos));
+   if let Some((_,_,hand))=grip {
+    if i==hand+1 {
+     // Bring the thumb onto the deck while keeping the two sides mirrored.
+     globals[i].0=globals[i].0*Mat3::from_rotation_z(-1.630023)*Mat3::from_rotation_x(if hand==30{-0.88}else{0.88});
+    }else if i==hand+2 {
+     globals[i].0=globals[i].0*Mat3::from_rotation_z(-1.353924);
+    }else if i==hand+3 {
+     globals[i].0=globals[i].0*Mat3::from_rotation_z(-1.776923);
+    }
    }
   }
   // Unlike Skate NativeMatrix, Bully's compact HAnim stores ROWS of the

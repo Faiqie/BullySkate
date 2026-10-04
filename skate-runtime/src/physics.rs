@@ -225,6 +225,8 @@ impl GamePhysics {
     pub(crate) fn period(&self) -> std::time::Duration { self.clock.period() }
 
     pub(crate) fn difficulty_index(&self) -> u32 { self.animation_profile.physics_mode }
+    pub(crate) fn set_easy_motorized(&mut self,value:bool){self.animation_profile.easy_motorized=value;}
+    pub(crate) fn host_difficulty_index(&self)->u32{if self.animation_profile.easy_motorized{4}else{self.difficulty_index()}}
 
     pub(crate) fn world_triangles(&self) -> &[skate_core::physics::board_world::WorldTriangle] { self.world.triangles() }
 

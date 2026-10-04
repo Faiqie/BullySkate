@@ -85,7 +85,7 @@ pub(super) fn advance(
     )?;
     #[cfg(debug_assertions)]
     super::dev_trace::checkpoint("processed_input", physics, skater);
-    skater.ground_settings = skater.ground_profiles.select(skater.player_input.processed.state_variant_index_2528, skater.player_input.processed.surface_mode_2540)?;
+    skater.ground_settings = skater.ground_profiles.select_for_host(skater.player_input.processed.state_variant_index_2528, skater.player_input.processed.surface_mode_2540,physics.animation_profile.easy_motorized)?;
     if teleported {
         skater.respawn.reset_measurements();
         #[cfg(test)]

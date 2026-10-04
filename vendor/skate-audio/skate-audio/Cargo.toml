@@ -1,0 +1,12 @@
+[package]
+name = "skate-audio"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "GPL-3.0-only"
+description = "Native port of Skate 3's AEMS patch-program evaluator and RenderWare-style voice graph (engine independent)"
+
+[dependencies]
+# The per-sample fused-multiply-add loops, compiled plain and with hardware FMA, picked at run
+# time (doc 11 "Hardware FMA dispatch"). The only `unsafe` lives there; this crate forbids it.
+skate-audio-fma = { path = "../skate-audio-fma" }

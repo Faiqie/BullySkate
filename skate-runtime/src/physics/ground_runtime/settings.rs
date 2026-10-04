@@ -25,18 +25,31 @@ use std::sync::Arc;
 
 /// Immutable stock tables selected by the processed packet, including its
 /// difficulty-dependent SurfacePhysics normalization. No per-tick parsing.
-pub(crate) struct GroundProfiles(Vec<Vec<Arc<GroundSettings>>>);
+pub(crate) struct GroundProfiles {modes:Vec<Vec<Arc<GroundSettings>>>,easy_motorized:Vec<Arc<GroundSettings>>}
 impl GroundProfiles {
     pub fn load(data: &Collections) -> Result<Self, String> {
-        crate::difficulty::NATIVE_MODES.into_iter().map(|mode| {
+        let modes=crate::difficulty::NATIVE_MODES.into_iter().map(|mode| {
             (1..=5).map(|surface| {
                 GroundSettings::load(data, mode, super::surface_key(surface)?).map(Arc::new)
             }).collect::<Result<Vec<_>, String>>()
-        }).collect::<Result<Vec<_>, String>>().map(Self)
+        }).collect::<Result<Vec<_>, String>>()?;
+        let easy_motorized=modes[0].iter().zip(&modes[3]).map(|(easy,motor)|{
+            let mut settings=(**easy).clone();
+            settings.speed.override_enabled=motor.speed.override_enabled;
+            settings.speed.override_speed=motor.speed.override_speed;
+            Arc::new(settings)
+        }).collect();
+        Ok(Self{modes,easy_motorized})
     }
     pub fn select(&self, mode: u32, surface: u32) -> Result<Arc<GroundSettings>, String> {
-        surface.checked_sub(1).and_then(|s| self.0.get(mode as usize)?.get(s as usize))
+        surface.checked_sub(1).and_then(|s| self.modes.get(mode as usize)?.get(s as usize))
             .cloned().ok_or_else(|| format!("Invalid processed physics mode/surface {mode}/{surface}"))
+    }
+    pub fn select_for_host(&self,mode:u32,surface:u32,easy_motorized:bool)->Result<Arc<GroundSettings>,String>{
+        if easy_motorized&&mode==0 {
+            surface.checked_sub(1).and_then(|s|self.easy_motorized.get(s as usize)).cloned()
+                .ok_or_else(||format!("Invalid motorized Easy surface {surface}"))
+        }else{self.select(mode,surface)}
     }
 }
 

@@ -1,0 +1,8 @@
+[package]
+name = "skate-audio-fma"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "skate-audio's fused-multiply-add DSP loops, compiled twice (plain and hardware FMA) with a runtime CPU check"
+
+license = "GPL-3.0-only"

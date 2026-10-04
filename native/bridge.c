@@ -1,4 +1,4 @@
-/* Bully 1.200 native query bridge. Built into a local DSL 9 client.
+/* Bully 1.200 native query bridge. Independent of the official DSL loader.
  * Addresses are verified against the supplied executable by build tooling.
  * No game calls from worker threads; Lua/game thread owns every call. */
 #include <dsl/dsl.h>
@@ -32,6 +32,12 @@ extern uint32_t __cdecl fs_skate_camera(void*,float,float*);
 extern uint32_t __cdecl fs_skate_root(void*,float*);
 extern uint32_t __cdecl fs_skate_actors(void*,const float*,uint32_t);
 #include "skate_worker.h"
+#include "audio_worker.h"
+int FS_VideoOptions(lua_State*);
+int FS_VideoStats(lua_State*);
+int FS_PerformanceOptions(lua_State*);
+unsigned bs_traffic_budget(void);
+float bs_traffic_range(void);
 static int rig_active=0;
 static float rig_pose[36][13];
 static float board_pose[2][13];
@@ -39,7 +45,6 @@ static int focused(void) { return GetForegroundWindow()==getGameWindow(); }
 static BS_ControllerInput controller_input;
 static BS_PadState controller_state;
 static wchar_t controller_library[32768];
-static int context_pending;
 static void poll_controller(void) {
     static int reported=0;
     if(!controller_library[0]) {
@@ -79,21 +84,13 @@ void fakieUpdateController(void *raw) {
             if(held)controller->input.joystick.buttons|=(short)pause;
             if(held&&!previous)controller->pressed|=pause;
             if(!held&&previous)controller->released|=pause;
-        } else if(held) {
-            int binding=getGameBindingsAdvanced(0)[BS_PAUSE_ACTION];
-            if(binding>=0&&binding<256)controller->input.keyboard[binding]=0x80;
-            controller->input.keyboard[DIK_ESCAPE]=0x80;
-        }
+        } else if(held){int binding=getGameBindingsAdvanced(0)[BS_PAUSE_ACTION];if(binding>=0&&binding<256)controller->input.keyboard[binding]=0x80;controller->input.keyboard[DIK_ESCAPE]=0x80;}
     }
     previous=held;
-    if(context_pending&&!getGamePaused()&&focused()){
-        bs_context_action(controller,(unsigned)getGameBindingsBasic()[9],getGameBindingsAdvanced(0)[9]);
-        context_pending=0;
-    }
 }
 static unsigned char key_down[256],key_edge[256];static int keys_focused=0;
 static void poll_keys(void){
- static const unsigned char watched[]={8,13,27,32,37,38,39,40,65,68,69,82,83,87,116,117,118,119,120,121,160};
+ static const unsigned char watched[]={8,13,27,32,37,38,39,40,65,68,69,82,83,87,116,117,118,119,120,121,122,160};
  int active=focused(),k;unsigned i;
  for(i=0;i<sizeof(watched);i++){
   k=watched[i];
@@ -170,39 +167,23 @@ static int FS_Active(lua_State *lua) {
  * the selected controller while keeping Escape/Start available to pause. */
 static int FS_MuteGameplay(lua_State *lua){
  int index=getGamePrimaryControllerIndex();
- if(enabled&&index>=0&&index<4) {
-  game_controller *controller=getGameControllers()+index;
-  bs_mute_gameplay(controller,(unsigned)getGameBindingsBasic()[BS_PAUSE_ACTION],getGameBindingsAdvanced(0)[BS_PAUSE_ACTION]);
- }
+ if(enabled&&index>=0&&index<4)bs_mute_gameplay(getGameControllers()+index,(unsigned)getGameBindingsBasic()[BS_PAUSE_ACTION],getGameBindingsAdvanced(0)[BS_PAUSE_ACTION]);
  return 0;
-}
-/* Yield a context action to Bully after releasing our controller filter. */
-static int FS_Interact(lua_State *lua){
- if(enabled)context_pending=1;
- return 0;
-}
-static int FS_BoardPresent(lua_State *lua){
- int present=0;
- if(enabled)__try {
-  char *ped=*(char**)0xC1AEA8,*board;
-  if(readable(ped,0x1D4)){board=*(char**)(ped+0x1D0);present=readable(board,0x110)&&*(short*)(board+0x10E)==437&&readable(*(void**)(board+0x18),8);}
- }__except(EXCEPTION_EXECUTE_HANDLER){}
- lua_pushboolean(lua,present);return 1;
 }
 /* PedGetPosXYZ returns the collision origin. PedSetPosXYZ adds -bounds.min.z
  * to a requested foot position; use that same model offset for NPC contacts. */
 static int FS_PedBaseOffset(lua_State *lua){
- float offset=0.98f,height=1.56f,radius=0.28f;char *ped,*entity;float *bounds;
+ float offset=0.98f,height=1.56f,radius=.28f;char *ped,*entity;float *bounds;
  if(enabled)__try{
   ped=(char*)getGamePedFromId((int)luaL_checknumber(lua,1),0);
   if(readable(ped,0x1558)){
    entity=*(char**)(ped+0x1554);if(!entity)entity=ped;
    if(readable(entity,0x110)){
     bounds=((float*(__cdecl*)(void*))0x51AF50)(entity);
-    if(readable(bounds,44)&&isfinite(bounds[6])&&bounds[6]<=0&&bounds[6]>=-4){
+    if(readable(bounds,40)&&isfinite(bounds[6])&&bounds[6]<=0&&bounds[6]>=-4){
      offset=-bounds[6];
-     if(isfinite(bounds[10])&&bounds[10]>bounds[6])height=fminf(2.6f,fmaxf(0.8f,bounds[10]-bounds[6]));
-     if(isfinite(bounds[8])&&isfinite(bounds[4])&&isfinite(bounds[9])&&isfinite(bounds[5]))radius=fminf(0.55f,fmaxf(0.18f,0.5f*fmaxf(bounds[8]-bounds[4],bounds[9]-bounds[5])));
+     if(isfinite(bounds[9])&&bounds[9]-bounds[6]>=.6f&&bounds[9]-bounds[6]<=2.8f)height=bounds[9]-bounds[6];
+     if(isfinite(bounds[4])&&isfinite(bounds[5])&&isfinite(bounds[7])&&isfinite(bounds[8]))radius=fmaxf(.18f,fminf(.5f,fmaxf(bounds[7]-bounds[4],bounds[8]-bounds[5])*.5f));
     }
    }
   }
@@ -238,17 +219,32 @@ static int FS_SkaterOptions(lua_State *lua){
  unsigned k;
  if(lua_gettop(lua)){
   SkaterPreferences next;
-  for(k=0;k<11;k++)next.values[k]=(float)luaL_checknumber(lua,k+1);
+  for(k=0;k<10;k++)next.values[k]=(float)luaL_checknumber(lua,k+1);
   if(!skater_preferences_valid(&next))return luaL_error(lua,"Invalid skater settings");
   if(!skater_preferences_save(&next)){lua_pushboolean(lua,0);return 1;}
   skater_preferences=next;lua_pushboolean(lua,1);return 1;
  }
  skater_preferences_load();
- for(k=0;k<11;k++)lua_pushnumber(lua,skater_preferences.values[k]);
- return 11;
+ for(k=0;k<10;k++)lua_pushnumber(lua,skater_preferences.values[k]);
+ return 10;
 }
 static int FS_SkateConfigure(lua_State *lua){
  lua_pushboolean(lua,ipc_skate_configure(&skater_preferences));return 1;
+}
+static int FS_PhysicsOptions(lua_State *lua){
+ if(lua_gettop(lua)){
+  SkateModeSettings next;float difficulty=luaL_checknumber(lua,1);
+  if(!isfinite(difficulty)||difficulty<0||difficulty>4||floorf(difficulty)!=difficulty)return luaL_error(lua,"Invalid skating mode");
+  next=skate_mode_settings;next.difficulty=(DWORD)difficulty;
+  if(lua_gettop(lua)>1){float camera_type=luaL_checknumber(lua,2);
+   if(!isfinite(camera_type)||camera_type<0||camera_type>1||floorf(camera_type)!=camera_type)return luaL_error(lua,"Invalid skating camera");
+   next.camera_type=(DWORD)camera_type;
+  }
+  {SkateModeSettings previous=skate_mode_settings;skate_mode_settings=next;
+   if(!skater_preferences_save(&skater_preferences)){skate_mode_settings=previous;lua_pushboolean(lua,0);return 1;}}
+  lua_pushboolean(lua,1);return 1;
+ }
+ lua_pushnumber(lua,skate_mode_settings.difficulty);lua_pushnumber(lua,skate_mode_settings.camera_type);return 2;
 }
 #include "vehicles.h"
 static int FS_SkateFree(lua_State *lua){
@@ -291,6 +287,12 @@ static int FS_SkateRoot(lua_State *lua){
  int ok=enabled&&*host&&fs_skate_root(*host,out);lua_pushboolean(lua,ok);if(!ok)return 1;
  for(i=0;i<3;i++)lua_pushnumber(lua,out[i]);return 4;
 }
+static int FS_SkateTeleport(lua_State *lua){
+ void **host=luaL_checkudata(lua,1,"BullyMotion.Skate");
+ int ok=enabled&&*host&&ipc_skate_teleport(*host,luaL_checknumber(lua,2),luaL_checknumber(lua,3),luaL_checknumber(lua,4),luaL_checknumber(lua,5));
+ if(ok)rig_active=fs_skate_pose(*host,&rig_pose[0][0])&&fs_skate_board_pose(*host,&board_pose[0][0]);
+ lua_pushboolean(lua,ok);return 1;
+}
 static int FS_SkateMarkerStatus(lua_State *lua){
  lua_pushnumber(lua,skate_snapshot.marker_flags);lua_pushnumber(lua,skate_snapshot.marker_sets);
  lua_pushnumber(lua,skate_snapshot.marker_returns);lua_pushnumber(lua,skate_snapshot.marker_progress);return 4;
@@ -332,6 +334,26 @@ static int FS_RigDump(lua_State *lua){
     fclose(file);lua_pushnumber(lua,count);return 1;
 }
 #include "rig.h"
+static int FS_BoardReady(lua_State *lua){
+ int ready=0;char *ped,*object,*frame,*child;NativeRig *rig;
+ if(enabled)__try{
+  ped=*(char**)0xC1AEA8;
+  if(readable(ped,0x1D4)){
+   object=*(char**)(ped+0x1D0);
+   if(readable(object,0x110)&&*(short*)(object+0x10E)==437){
+    object=*(char**)(object+0x18);
+    if(readable(object,8)){frame=*(char**)(object+4);
+     if(readable(frame,0x88)){child=*(char**)(frame+0x84);
+      if(readable(child,0x98)){rig=*(NativeRig**)(child+0x94);
+       ready=readable(rig,sizeof(*rig))&&rig->count==2&&readable(rig->matrices,sizeof(board_backup))&&readable(rig->bones,2*sizeof(NativeRigBone));
+      }
+     }
+    }
+   }
+  }
+ }__except(EXCEPTION_EXECUTE_HANDLER){ready=0;}
+ lua_pushboolean(lua,ready);return 1;
+}
 /* Publish the root bank after animation; native clips retain Jimmy's skin rig.
  * CEntity::UpdateRW and RwFrameUpdateObjects use the same path as PedFaceHeading. */
 static int FS_Bank(lua_State *lua) {
@@ -514,13 +536,17 @@ int dslopen_fakie(lua_State *lua) {
     QueryPerformanceFrequency(&board_frequency);
     luaL_newmetatable(lua,"BullyMotion.Skate");lua_pushstring(lua,"__gc");lua_pushcfunction(lua,FS_SkateFree);lua_settable(lua,-3);lua_pop(lua,1);
     lua_register(lua,"FS_SkateReady",FS_SkateReady);lua_register(lua,"FS_SkateNew",FS_SkateNew);
-    lua_register(lua,"FS_SkaterOptions",FS_SkaterOptions);lua_register(lua,"FS_SkateConfigure",FS_SkateConfigure);
+    lua_register(lua,"FS_AudioReady",FS_AudioReady);lua_register(lua,"FS_AudioStep",FS_AudioStep);lua_register(lua,"FS_AudioStop",FS_AudioStop);
+    lua_register(lua,"FS_VideoOptions",FS_VideoOptions);lua_register(lua,"FS_VideoStats",FS_VideoStats);
+    lua_register(lua,"FS_PerformanceOptions",FS_PerformanceOptions);
+    lua_register(lua,"FS_SkaterOptions",FS_SkaterOptions);lua_register(lua,"FS_SkateConfigure",FS_SkateConfigure);lua_register(lua,"FS_PhysicsOptions",FS_PhysicsOptions);
     lua_register(lua,"FS_SkateStep",FS_SkateStep);lua_register(lua,"FS_SkateFree",FS_SkateFree);
     lua_register(lua,"FS_SkateCamera",FS_SkateCamera);lua_register(lua,"FS_SkateRoot",FS_SkateRoot);
+    lua_register(lua,"FS_SkateTeleport",FS_SkateTeleport);
     lua_register(lua,"FS_SkateMarkerStatus",FS_SkateMarkerStatus);lua_register(lua,"FS_SkateMarkerReset",FS_SkateMarkerReset);
     lua_register(lua,"FS_SkateActors",FS_SkateActors);
     lua_register(lua,"FS_SkateVehicles",FS_SkateVehicles);lua_register(lua,"FS_SkateInteraction",FS_SkateInteraction);
-    
+
     lua_register(lua,"FS_RigDump",FS_RigDump);
     lua_register(lua,"FS_RigStatus",FS_RigStatus);
     lua_register(lua,"FS_Available",FS_Available);
@@ -528,16 +554,16 @@ int dslopen_fakie(lua_State *lua) {
     lua_register(lua,"FS_Pad",FS_Pad);
     lua_register(lua,"FS_Key",FS_Key);lua_register(lua,"FS_Active",FS_Active);
     lua_register(lua,"FS_MuteGameplay",FS_MuteGameplay);
-    lua_register(lua,"FS_Interact",FS_Interact);lua_register(lua,"FS_BoardPresent",FS_BoardPresent);
     lua_register(lua,"FS_PedBaseOffset",FS_PedBaseOffset);
+    lua_register(lua,"FS_BoardReady",FS_BoardReady);
     lua_register(lua,"FS_BoardMountInput",FS_BoardMountInput);
-    
-    
+
+
     lua_register(lua,"FS_Deadzone",FS_Deadzone);
     lua_register(lua,"FS_Mark",FS_Mark);lua_register(lua,"FS_Clear",FS_Clear);
     lua_register(lua,"FS_View",FS_View);
     lua_register(lua,"FS_Weapon",FS_Weapon);
-    
+
     lua_register(lua,"FS_Bank",FS_Bank);lua_register(lua,"FS_BoardPerf",FS_BoardPerf);
     lua_register(lua,"FS_Cursor",FS_Cursor);lua_register(lua,"FS_Options",FS_Options);
     return 0;

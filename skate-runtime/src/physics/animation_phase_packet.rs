@@ -17,6 +17,9 @@ pub(crate) struct AnimationProfile {
     pub truck_tightness: f32,
     pub wheel_hardness: f32,
     pub physics_mode: u32,
+    /// Host combination: retain Easy's packet and animation selectors while
+    /// choosing its prebuilt ground tables with only the motor fields changed.
+    pub easy_motorized: bool,
     pub prevent_manual_respawn: bool,
     pub ignore_respawn_reset_button: u8,
     pub force_braking: bool,
@@ -52,6 +55,7 @@ impl AnimationProfile {
             truck_tightness: f32::from_bits(0x3f333333),
             wheel_hardness: f32::from_bits(0x3f333333),
             physics_mode,
+            easy_motorized: false,
             prevent_manual_respawn: false,
             ignore_respawn_reset_button: 0,
             force_braking: false,

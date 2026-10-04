@@ -5,7 +5,7 @@ typedef struct VehicleHistory {DWORD id,time;float position[3];} VehicleHistory;
 static VehicleHistory vehicle_history[8];static unsigned vehicle_history_count;
 static int FS_SkateVehicles(lua_State *lua){
  void **host=luaL_checkudata(lua,1,"BullyMotion.Skate");float x=luaL_checknumber(lua,2),y=luaL_checknumber(lua,3),z=luaL_checknumber(lua,4);
- float rows[8][16],distances[8];VehicleHistory next[8];unsigned count=0,index,i,j;DWORD now=GetTickCount();
+ float rows[8][16],distances[8],range=bs_traffic_range();VehicleHistory next[8];unsigned count=0,index,i,j,budget=bs_traffic_budget();DWORD now=GetTickCount();
  if(!enabled||!*host){lua_pushboolean(lua,0);return 1;}
  __try{
   game_pool *pool=getGameVehiclePool();
@@ -18,7 +18,7 @@ static int FS_SkateVehicles(lua_State *lua){
     matrix=*(char**)(entity+0x14);if(!readable(matrix,0x40))continue;
     memcpy(row+1,matrix+0x30,12);if(!isfinite(row[1])||!isfinite(row[2])||!isfinite(row[3]))continue;
     dx=row[1]-x;dy=row[2]-y;distance=dx*dx+dy*dy;
-    if(distance>35*35||fabsf(row[3]-z)>6)continue;
+    if(distance>range*range||fabsf(row[3]-z)>6)continue;
     memcpy(row+4,matrix+0x10,12);length=sqrtf(row[4]*row[4]+row[5]*row[5]+row[6]*row[6]);
     if(!isfinite(length)||length<.5f||fabsf(row[6])>.45f)continue;
     row[4]/=length;row[5]/=length;row[6]/=length;
@@ -33,7 +33,7 @@ static int FS_SkateVehicles(lua_State *lua){
      break;
     }
     i=count;
-    if(count==8){i=7;if(distance>=distances[i])continue;}else count++;
+    if(count==budget){i=budget-1;if(distance>=distances[i])continue;}else count++;
     while(i>0&&distance<distances[i-1]){memcpy(rows[i],rows[i-1],sizeof(row));distances[i]=distances[i-1];i--;}
     memcpy(rows[i],row,sizeof(row));distances[i]=distance;
    }

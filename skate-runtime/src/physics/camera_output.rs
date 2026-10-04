@@ -12,8 +12,8 @@ use skate_core::{
 };
 
 /// The actual game camera call, after completed physical output conditioning.
-/// The user's selected normal High camera is graph type1. This custom world
-/// has no road/ledge/camera-volume annotations or other moving actors.
+/// The user's selection chooses the stock Low/High graph branch. This custom
+/// world has no road/ledge/camera-volume annotations or other moving actors.
 pub(crate) fn advance(
     physics: &GamePhysics,
     skater: &SkaterRuntime,
@@ -57,7 +57,7 @@ pub(crate) fn advance(
     )?;
     let snapshot = crate::camera::publish_camera_subject(physics, skater, &inputs)?;
     let environment = crate::camera::CameraGraphEnvironment {
-        camera_type: 1,
+        camera_type: camera.camera_type,
         on_road: false,
         ledge_left: false,
         ledge_right: false,

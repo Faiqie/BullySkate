@@ -12,12 +12,15 @@ typedef struct SkateShared {
  DWORD input_count;SkateInput inputs[8];
  DWORD mount_area,actor_revision,vehicle_count,vehicle_revision;float vehicles[8][16];
  DWORD interaction[4];
+ float audio[64];
+ DWORD world_phase;SkateModeSettings modes;
 } SkateShared;
-_Static_assert(sizeof(SkateShared)==5920,"Skate worker protocol must match x64 layout");
+_Static_assert(sizeof(SkateShared)==6184,"Skate worker protocol must match x64 layout");
 typedef struct SkateSnapshot {
  float output[14],pose[36][13],board[2][13],camera[7],root[3];
  DWORD has_camera,marker_flags,marker_sets,marker_returns;float marker_progress;
  DWORD interaction[4];
+ float audio[64];
 } SkateSnapshot;
 static SkateSnapshot skate_snapshot;
 static SkateInput skate_inputs[8];static unsigned skate_input_count;
@@ -30,6 +33,8 @@ static float skate_aspect=16.0f/9.0f;
 static SkateShared *skate_shared;
 static HANDLE skate_mapping,skate_command,skate_response,skate_process,skate_job;
 static int skate_pending=0,skate_started=0;
+/* Native CEntity::IsCollidable tests CModelInfo.appearance against this byte. */
+static DWORD skate_world_phase(void){unsigned phase=*(unsigned char*)0xA147E0;return phase<8?phase:0;}
 static int skate_channel_error(const char *message){
  if(skate_shared){strncpy_s(skate_shared->error,sizeof(skate_shared->error),message,_TRUNCATE);skate_shared->ready=3;}
  return 0;
@@ -54,7 +59,8 @@ static uint32_t ipc_skate_prepare(){
   skate_shared=(SkateShared*)MapViewOfFile(skate_mapping,FILE_MAP_ALL_ACCESS,0,0,sizeof(SkateShared));
   if(!skate_shared)return 3;
   memset(skate_shared,0,sizeof(*skate_shared));skate_shared->ready=1;skate_shared->aspect=16.0f/9.0f;
-  skate_shared->preferences=skater_preferences;
+  skate_shared->world_phase=skate_world_phase();
+  skate_shared->preferences=skater_preferences;skate_shared->modes=skate_mode_settings;
   swprintf_s(name,128,L"Local\\BullySkate-%lu-command",pid);skate_command=CreateEventW(NULL,FALSE,FALSE,name);
   swprintf_s(name,128,L"Local\\BullySkate-%lu-response",pid);skate_response=CreateEventW(NULL,FALSE,FALSE,name);
   if(!skate_command||!skate_response){skate_channel_error("Cannot create the Skate simulation events.");return 3;}
@@ -86,7 +92,7 @@ static int skate_finish(DWORD timeout){
  if(!skate_pending)return 1;
  if(WaitForSingleObject(skate_response,timeout)!=WAIT_OBJECT_0)return 0;
  skate_pending=0;MemoryBarrier();
- if(skate_shared->success&&(skate_pending_type==1||skate_pending_type==2||skate_pending_type==4||skate_pending_type==5)){
+ if(skate_shared->success&&(skate_pending_type==1||skate_pending_type==2||skate_pending_type==4||skate_pending_type==5||skate_pending_type==6)){
   memcpy(skate_snapshot.output,skate_shared->output,sizeof(skate_snapshot.output));
   memcpy(skate_snapshot.pose,skate_shared->pose,sizeof(skate_snapshot.pose));
   memcpy(skate_snapshot.board,skate_shared->board,sizeof(skate_snapshot.board));
@@ -96,19 +102,20 @@ static int skate_finish(DWORD timeout){
   skate_snapshot.marker_flags=skate_shared->marker_flags;skate_snapshot.marker_sets=skate_shared->marker_sets;
   skate_snapshot.marker_returns=skate_shared->marker_returns;skate_snapshot.marker_progress=skate_shared->marker_progress;
   memcpy(skate_snapshot.interaction,skate_shared->interaction,sizeof(skate_snapshot.interaction));
+  memcpy(skate_snapshot.audio,skate_shared->audio,sizeof(skate_snapshot.audio));
   if(skate_pending_type==1)skate_snapshot_valid=1;
  }
  return 1;
 }
 static int skate_request(DWORD command,DWORD timeout){
  if(!skate_health()||!skate_finish(0))return 0;
- skate_shared->command=command;skate_shared->success=0;skate_pending_type=command;MemoryBarrier();skate_pending=1;
+ skate_shared->command=command;skate_shared->success=0;skate_shared->world_phase=skate_world_phase();skate_pending_type=command;MemoryBarrier();skate_pending=1;
  SetEvent(skate_command);
  if(!skate_finish(timeout))return 0;
  return skate_shared->success!=0;
 }
 static void *ipc_skate_mount(float x,float y,float z,float yaw){
- if(!skate_health()||!skate_finish(40))return NULL;
+ if(!skate_health()||!skate_finish(100))return NULL;
  skate_shared->mount[0]=x;skate_shared->mount[1]=y;skate_shared->mount[2]=z;skate_shared->mount[3]=yaw;
  skate_shared->actor_count=0;skate_actor_count=0;skate_input_count=0;skate_snapshot_valid=0;
  skate_shared->input_count=0;
@@ -118,7 +125,7 @@ static void *ipc_skate_mount(float x,float y,float z,float yaw){
 static int ipc_skate_configure(const SkaterPreferences *p){
  if(!skater_preferences_valid(p))return 0;
  if(!skate_health()||!skate_finish(0))return 0;
- skate_shared->preferences=*p;
+ skate_shared->preferences=*p;skate_shared->modes=skate_mode_settings;
  return skate_request(4,40);
 }
 static void ipc_skate_release(void *handle){
@@ -128,6 +135,14 @@ static void ipc_skate_release(void *handle){
 static int ipc_skate_marker_clear(void){
  if(!skate_health()||!skate_finish(25))return 0;
  return skate_request(5,40);
+}
+static int ipc_skate_teleport(void *handle,float x,float y,float z,float yaw){
+ if(!handle||!isfinite(x)||!isfinite(y)||!isfinite(z)||!isfinite(yaw)||!skate_snapshot_valid)return 0;
+ if(!skate_health()||!skate_finish(100))return 0;
+ skate_shared->mount[0]=x;skate_shared->mount[1]=y;skate_shared->mount[2]=z;skate_shared->mount[3]=yaw;
+ skate_shared->mount_area=skate_mount_area;skate_shared->input_count=0;
+ skate_input_count=0;skate_actor_count=0;skate_vehicle_count=0;skate_actor_revision++;skate_vehicle_revision++;
+ return skate_request(6,1000);
 }
 static uint32_t ipc_skate_actors(void *handle,const float *records,uint32_t count){
  if(!handle||!records||count>24||!skate_health())return 0;
@@ -152,6 +167,7 @@ static uint32_t ipc_skate_step(void *handle,float dt,uint32_t buttons,float lx,f
   skate_shared->vehicle_count=skate_vehicle_count;skate_shared->vehicle_revision=skate_vehicle_revision;
   memcpy(skate_shared->vehicles,skate_vehicles,skate_vehicle_count*16*sizeof(float));
   skate_shared->aspect=skate_aspect;
+  skate_shared->world_phase=skate_world_phase();
   skate_shared->command=2;skate_shared->success=0;skate_pending_type=2;
   MemoryBarrier();skate_pending=1;SetEvent(skate_command);skate_input_count=0;skate_submitted++;
  }else skate_reused++;

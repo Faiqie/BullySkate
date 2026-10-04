@@ -8,7 +8,13 @@
 
 **Skating is preparing:** load your save and wait about 15 seconds, then press F6 again.
 
-**Black scene or cropped screen:** use the normal launcher and Bully's fullscreen settings. Choose your rendering resolution in the game's graphics menu. Avoid forcing borderless mode or adding graphics wrappers while troubleshooting.
+**Black scene or cropped screen:** choose your rendering resolution in Bully's Video menu. Use F8 > Video for fullscreen or borderless mode. Mode changes apply on the next launch. If a saved mode fails, start the launcher with `--fullscreen` to recover native fullscreen.
+
+**Other DSL mods:** the launcher uses official DSL 15.3 and keeps newer installations. Leave other mods in their usual folders with their `config.ini` files. Existing settings and script folders are preserved.
+
+**Sound-card / DirectX error:** the launcher checks Bully's XACT audio engine and offers the verified Microsoft legacy DirectX installer when that runtime is missing. Accept Windows' administrator prompt. An enabled speaker or headphone output is also required.
+
+**Skate sounds:** first setup prepares player audio from your own Skate 3 files. Bully keeps its pedestrians, music and ambience. If sound preparation fails, keep the full Skate 3 folder with `data/audio` beside its XEX.
 
 **Controller:** connect an Xbox/XInput controller, DualShock 4 or DualSense by USB, or pair it through Windows Bluetooth. PlayStation controllers work directly in the skating mod. If another program hides your PlayStation controller, turn that program off for direct input, or use its Xbox mapping. Native Bully controls apply outside skate mode.
 

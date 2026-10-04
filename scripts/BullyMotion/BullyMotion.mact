@@ -14,13 +14,6 @@ Bank BullyMotion
 				param00024 h"DUMMY"
 				param00032 false
 			}
-			SetWeaponFlags
-			{
-				param00008 false
-				param00012 0.000000
-				param00024 true
-				param00028 0
-			}
 			Animation
 			{
 				param00008 true
@@ -64,13 +57,6 @@ Bank BullyMotion
 				param00012 0.000000
 				param00024 h"DUMMY"
 				param00032 false
-			}
-			SetWeaponFlags
-			{
-				param00008 false
-				param00012 0.000000
-				param00024 true
-				param00028 0
 			}
 			Animation
 			{
@@ -116,13 +102,6 @@ Bank BullyMotion
 				param00024 h"DUMMY"
 				param00032 false
 			}
-			SetWeaponFlags
-			{
-				param00008 false
-				param00012 0.000000
-				param00024 true
-				param00028 0
-			}
 			Animation
 			{
 				param00008 true
@@ -166,13 +145,6 @@ Bank BullyMotion
 				param00012 0.000000
 				param00024 h"DUMMY"
 				param00032 false
-			}
-			SetWeaponFlags
-			{
-				param00008 false
-				param00012 0.000000
-				param00024 true
-				param00028 0
 			}
 			Animation
 			{
@@ -218,13 +190,6 @@ Bank BullyMotion
 				param00024 h"DUMMY"
 				param00032 false
 			}
-			SetWeaponFlags
-			{
-				param00008 false
-				param00012 0.000000
-				param00024 true
-				param00028 0
-			}
 			Animation
 			{
 				param00008 true
@@ -268,13 +233,6 @@ Bank BullyMotion
 				param00012 0.000000
 				param00024 h"DUMMY"
 				param00032 false
-			}
-			SetWeaponFlags
-			{
-				param00008 false
-				param00012 0.000000
-				param00024 true
-				param00028 0
 			}
 			Animation
 			{
@@ -320,13 +278,6 @@ Bank BullyMotion
 				param00024 h"DUMMY"
 				param00032 false
 			}
-			SetWeaponFlags
-			{
-				param00008 false
-				param00012 0.000000
-				param00024 true
-				param00028 0
-			}
 			Animation
 			{
 				param00008 true
@@ -370,13 +321,6 @@ Bank BullyMotion
 				param00012 0.000000
 				param00024 h"DUMMY"
 				param00032 false
-			}
-			SetWeaponFlags
-			{
-				param00008 false
-				param00012 0.000000
-				param00024 true
-				param00028 0
 			}
 			Animation
 			{

@@ -1,4 +1,4 @@
-fn main()->Result<(),String>{
+fn run()->Result<(),String>{
  use bevy::math::{Mat3,Vec3};
  let selected=std::env::args().nth(1).unwrap_or_else(||r"prepared/skate-assets".into());
  let root=std::path::Path::new(&selected);
@@ -41,3 +41,4 @@ fn main()->Result<(),String>{
  if !airborne||!landed||peak-base<0.25{return Err(format!("Rig probe failed ollie/landing: airborne={airborne}, landed={landed}, deck rise={}",peak-base))}
  println!("600 Bullworth gameplay ticks in {:?}; rig minimum direction dot {minimum_dot}, maximum length error {maximum_length_error} m; airborne={airborne} landed={landed} deck rise={}m",start.elapsed(),peak-base);Ok(())
 }
+fn main()->Result<(),String>{std::thread::Builder::new().stack_size(32*1024*1024).spawn(run).map_err(|e|e.to_string())?.join().map_err(|_|"Probe panicked".to_string())?}

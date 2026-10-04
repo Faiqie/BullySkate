@@ -1,13 +1,21 @@
 param(
  [Parameter(Mandatory=$true)][string]$GamePath,
  [Parameter(Mandatory=$true)][string]$SkateAssets,
- [Parameter(Mandatory=$true)][string]$BullyAssets
+ [Parameter(Mandatory=$true)][string]$BullyAssets,
+ [Parameter(Mandatory=$true)][string]$AudioAssets
 )
 $ErrorActionPreference='Stop'
 $taskGame=[IO.Path]::GetFullPath($GamePath).TrimEnd('\')
 $taskAssets=[IO.Path]::GetFullPath($SkateAssets).TrimEnd('\')
 $taskBullyAssets=[IO.Path]::GetFullPath($BullyAssets).TrimEnd('\')
-$taskRequired=@('jimmy-bind.json','vehicle-bounds.txt','world.bmgeo','world.bmrails')
+$taskAudio=[IO.Path]::GetFullPath($AudioAssets).TrimEnd('\')
+if(!(Test-Path -LiteralPath (Join-Path $taskAudio 'private\audio\audio_manifest.json'))){throw 'Prepare Skate 3 audio through the launcher first.'}
+foreach($taskLine in Get-Content -LiteralPath (Join-Path $taskAudio 'asset-manifest.sha256')){
+ if($taskLine -notmatch '^([a-fA-F0-9]{64})  (private/audio/.+)$'){throw 'Invalid local audio manifest.'}
+ $taskHash=$Matches[1];$taskFile=[IO.Path]::GetFullPath((Join-Path $taskAudio $Matches[2]))
+ if(!$taskFile.StartsWith($taskAudio+'\',[StringComparison]::OrdinalIgnoreCase) -or !(Test-Path -LiteralPath $taskFile -PathType Leaf) -or (Get-FileHash -LiteralPath $taskFile).Hash -ne $taskHash){throw 'Local Skate 3 audio failed verification.'}
+}
+$taskRequired=@('jimmy-bind.json','vehicle-bounds.txt','world.bmgeo','world.bmrails','world-models.txt')
 $taskBullyEntries=@(Get-Content -LiteralPath (Join-Path $taskBullyAssets 'asset-manifest.sha256') | ForEach-Object {
  if($_ -notmatch '^([a-fA-F0-9]{64})  (.+)$'){throw 'Invalid locally prepared Bully manifest.'}
  $taskAssetHash=$Matches[1];$taskRelative=$Matches[2]
@@ -54,7 +62,7 @@ $scriptRoot=Join-Path $loader 'scripts'
 $collection=Join-Path $scriptRoot 'BullyMotion'
 $backup=Join-Path $loader ('motion-backups\'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 New-Item -ItemType Directory -Path $backup,$scriptRoot -Force | Out-Null
-foreach($item in @('derpy_script_loader.asi','_derpy_script_loader\config.txt')){
+foreach($item in @('derpy_script_loader.asi','BullySkate.asi','_derpy_script_loader\config.txt')){
  $existing=Join-Path $taskGame $item
  if(Test-Path -LiteralPath $existing){Copy-Item -LiteralPath $existing -Destination (Join-Path $backup ([IO.Path]::GetFileName($item))) -Force}
 }
@@ -77,8 +85,10 @@ foreach($name in @('BrownJacket_d.dds','sg_mainmap_d.dds','spudg_d.dds','WP00_li
   Move-Item -LiteralPath $obsolete -Destination (Join-Path $retired $name)
  }
 }
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\derpy_script_loader.asi') -Destination (Join-Path $taskGame 'derpy_script_loader.asi') -Force
+& (Join-Path $PSScriptRoot 'tools\EnsureDsl.ps1') -GamePath $taskGame
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\BullySkate.asi') -Destination (Join-Path $taskGame 'BullySkate.asi') -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\SkatePhysicsWorker.exe') -Destination (Join-Path $collection 'SkatePhysicsWorker.exe') -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\SkateAudioWorker.exe') -Destination (Join-Path $collection 'SkateAudioWorker.exe') -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\worker-dependencies\vcruntime140.dll') -Destination (Join-Path $collection 'vcruntime140.dll') -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\controller-dependencies\SDL3.dll') -Destination (Join-Path $collection 'SDL3.dll') -Force
 $nativeRuntime=Join-Path $taskGame 'vcruntime140.dll'
@@ -93,13 +103,13 @@ foreach($dependency in @(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'ru
  if(!(Test-Path -LiteralPath $target)){Copy-Item -LiteralPath $dependency.FullName -Destination $target}
 }
 foreach($item in @(Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'scripts\BullyMotion'))){
- if($item.Name -eq 'settings.dat'){continue}
- if($item.Name -eq 'config.txt' -and (Test-Path -LiteralPath (Join-Path $collection 'config.txt'))){
-  $currentConfig=Join-Path $collection 'config.txt'
+ if($item.Name -in @('settings.dat','skater-settings.dat','video-settings.dat','performance-settings.dat')){continue}
+ if($item.Name -eq 'config.ini' -and (Test-Path -LiteralPath (Join-Path $collection 'config.ini'))){
+  $currentConfig=Join-Path $collection 'config.ini'
   $existingLines=@(Get-Content -LiteralPath $currentConfig)
   $existingKeys=@{}
-  foreach($line in $existingLines){if($line -match '^\s*([^#\s]+)\s+'){$existingKeys[$Matches[1]]=$true}}
-  $additional=@(Get-Content -LiteralPath $item.FullName | Where-Object {$_ -match '^\s*([^#\s]+)\s+' -and !$existingKeys.ContainsKey($Matches[1])})
+  foreach($line in $existingLines){if($line -match '^\s*([^#:\s]+)\s*:'){$existingKeys[$Matches[1]]=$true}}
+  $additional=@(Get-Content -LiteralPath $item.FullName | Where-Object {$_ -match '^\s*([^#:\s]+)\s*:' -and !$existingKeys.ContainsKey($Matches[1])})
   if($additional.Count){[IO.File]::WriteAllLines($currentConfig,@($existingLines+$additional),[Text.UTF8Encoding]::new($false))}
   continue
  }
@@ -117,9 +127,6 @@ foreach($entry in $assetEntries){
 }
 Copy-Item -LiteralPath $assetManifest -Destination (Join-Path $installedAssets 'asset-manifest.sha256') -Force
 [IO.File]::WriteAllText((Join-Path $collection 'source-path.txt'),$installedAssets,[Text.UTF8Encoding]::new($false))
-$config=Join-Path $loader 'config.txt'
-if(!(Test-Path -LiteralPath $config)){
- Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'runtime\config.txt') -Destination $config
-}
+[IO.File]::WriteAllText((Join-Path $collection 'audio-path.txt'),$taskAudio,[Text.UTF8Encoding]::new($false))
 Write-Output "Bully Motion installed. Backup: $backup"
-Write-Output 'F6 Skate / F8 Edit Skater and FOV / F5 native Bully'
+Write-Output 'Right stick click + D-pad Down: Skate / Bully. Right stick click + D-pad Left: Skate menu.'

@@ -15,11 +15,31 @@ class BullyColFile:
                 bounds=SimpleNamespace(min=struct.unpack_from('<3f',raw,52),max=struct.unpack_from('<3f',raw,68))))
             offset+=size
         return SimpleNamespace(models=models)
+def appearance_masks(game):
+    """IDE object appearance bits match CModelInfo+0xB in native collision."""
+    result={}
+    for path in sorted((game/'Objects').rglob('*.ide')):
+        section=''
+        for line in path.read_text(encoding='ascii',errors='replace').splitlines():
+            line=line.split('#',1)[0].strip()
+            if ',' not in line:
+                section=line.lower();continue
+            if section not in ('objs','tobj'):continue
+            values=[s.strip() for s in line.split(',')]
+            try:
+                model=int(values[0]);distances=int(values[3]);mask=int(values[8+distances])
+            except (ValueError,IndexError):continue
+            if not 0<=model<65536 or not 1<=distances<=3 or not 0<=mask<=255:
+                raise ValueError(('Invalid object appearance',path.name,line))
+            result[model]=mask
+    if not result:raise ValueError('Missing Bully object definitions; select the complete game folder')
+    return result
 
-def physical_collision(model):
-    # The other world COL channels contain NOGO/WALKABLE navigation volumes.
-    # They overlap real scenery but are not solid geometry for the player.
-    return model.minor_type == 1
+def solid_model(model):
+    # Native CEntity::IsCollidable permits all three placed COL types. In
+    # particular, WALKABLE/NOGO names do not imply nonphysical geometry.
+    # Chapter appearance controls hidden objects separately at runtime.
+    return model.minor_type in (1,2,3)
 def export_vehicle_bounds(models,path):
     lines=['BMVB1']
     for model in [286,*range(290,298)]:
@@ -34,7 +54,7 @@ def export(game,output_root):
     for i in range(0,len(directory),32):
         offset,size,name=struct.unpack_from('<II24s',directory,i)
         entries[name.split(b'\0')[0].decode('ascii','replace')]=(offset*2048,size*2048)
-    models={};instances=[];dedup=set();skipped=[];bounds_warnings=[]
+    models={};instances=[];dedup=set();skipped=[];bounds_warnings=[];appearance=appearance_masks(game)
     with (game/'Stream/World.img').open('rb') as archive:
         def read(name):
             offset,size=entries[name];archive.seek(offset);return archive.read(size)
@@ -115,7 +135,6 @@ def export(game,output_root):
         return points,materials
     prepared={}
     for id,m in models.items():
-        if not physical_collision(m):continue
         try:prepared[id]=geometry(m)
         except (ValueError,struct.error) as e:skipped.append((id,m.major_type,m.minor_type,str(e)))
     target=output_root/'world.bmgeo'
@@ -123,6 +142,7 @@ def export(game,output_root):
     with target.open('wb') as output:
         output.write(b'BMGEO2\0\0'+struct.pack('<I',0))
         for name,area,model,xyz,scale,q,flags in instances:
+            if not solid_model(models[model]):continue
             m=models[model];q=q/np.linalg.norm(q);x,y,z,w=q
             rotation=np.array([[1-2*(y*y+z*z),2*(x*y-z*w),2*(x*z+y*w)],
                                [2*(x*y+z*w),1-2*(x*x+z*z),2*(y*z-x*w)],
@@ -139,6 +159,10 @@ def export(game,output_root):
                 output.write(struct.pack('<9fHHI',*tri.ravel(),material,area,model));total+=1;counts[name]+=1
             bounds.append((world.min((0,1)).tolist(),world.max((0,1)).tolist()))
         output.seek(8);output.write(struct.pack('<I',total))
-    report={'format':'BMGEO2','models':len(models),'instances':len(instances),'triangles':total,'bytes':target.stat().st_size,'skipped_models':skipped,'bounds_warnings':bounds_warnings,'placements':dict(counts)}
+    report={'format':'BMGEO2','models':len(models),'instances':len(instances),'triangles':total,'bytes':target.stat().st_size,'skipped_models':skipped,'bounds_warnings':bounds_warnings,'placements':dict(counts),
+            'grind_models':[id for id,m in models.items() if m.minor_type==1 and appearance.get(id,255)==255],
+            'excluded_navigation_models':[id for id,m in models.items() if not solid_model(m)],
+            'conditional_models':{id:mask for id,mask in appearance.items() if id in models and mask!=255}}
+    (output_root/'world-models.txt').write_text('BMMODELS1\n'+''.join(str(id)+' '+str(appearance.get(id,255))+'\n' for id,m in sorted(models.items()) if solid_model(m)),encoding='ascii')
     export_vehicle_bounds(models,output_root/'vehicle-bounds.txt')
     return report

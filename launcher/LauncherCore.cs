@@ -11,7 +11,7 @@ namespace BullySkate {
         public string Relative, Hash, FullPath;
     }
     public sealed class Selection {
-        public string Game, Assets, BullyAssets;
+        public string Game, Assets, BullyAssets, AudioAssets;
     }
     public static class LauncherCore {
         public static readonly string[] LoaderNames={"dinput8.dll","dsound.dll","version.dll","winmm.dll","d3d9.dll"};
@@ -77,7 +77,7 @@ namespace BullySkate {
         }
         public static List<FileEntry> BullyManifest(string root) {
             var entries=Manifest(Path.Combine(root,"asset-manifest.sha256"),root);
-            var required=new HashSet<string>(new[]{"jimmy-bind.json","vehicle-bounds.txt","world.bmgeo","world.bmrails"},StringComparer.Ordinal);
+            var required=new HashSet<string>(new[]{"jimmy-bind.json","vehicle-bounds.txt","world.bmgeo","world.bmrails","world-models.txt"},StringComparer.Ordinal);
             foreach(var entry in entries)if(!required.Remove(entry.Relative))throw new InvalidDataException("Invalid locally prepared Bully asset list.");
             if(required.Count!=0)throw new InvalidDataException("Incomplete locally prepared Bully assets.");
             return entries;
@@ -107,7 +107,12 @@ namespace BullySkate {
         public static bool Installed(string package,string game,string bullyAssets) {
             var collection=Path.Combine(game,"_derpy_script_loader","scripts","BullyMotion");
             var assets=Path.Combine(collection,"skate-assets");
-            if(!Matches(Path.Combine(game,"derpy_script_loader.asi"),Hash(Path.Combine(package,"runtime","derpy_script_loader.asi"))))return false;
+            if(!Matches(Path.Combine(game,"BullySkate.asi"),Hash(Path.Combine(package,"runtime","BullySkate.asi"))))return false;
+            var loader=Path.Combine(game,"derpy_script_loader.asi");
+            if(!File.Exists(loader))return false;
+            var version=Regex.Match(System.Text.Encoding.ASCII.GetString(File.ReadAllBytes(loader)),@"derpy's script loader: version (\d+(?:\.\d+)?)");
+            decimal loaderVersion;
+            if(!version.Success||!Decimal.TryParse(version.Groups[1].Value,System.Globalization.NumberStyles.Number,System.Globalization.CultureInfo.InvariantCulture,out loaderVersion)||loaderVersion<15.3m)return false;
             if(!HasLoader(package,game))return false;
             if(!Matches(Path.Combine(collection,"SkatePhysicsWorker.exe"),Hash(Path.Combine(package,"runtime","SkatePhysicsWorker.exe"))))return false;
             if(!Matches(Path.Combine(collection,"vcruntime140.dll"),Hash(Path.Combine(package,"runtime","worker-dependencies","vcruntime140.dll"))))return false;
@@ -118,20 +123,33 @@ namespace BullySkate {
             var scriptRoot=Path.Combine(package,"scripts","BullyMotion");
             foreach(var file in Directory.GetFiles(scriptRoot,"*",SearchOption.AllDirectories)) {
                 var relative=file.Substring(scriptRoot.Length+1);
-                if(relative=="config.txt"||relative=="settings.dat")continue;
+                if(relative=="config.ini"||relative=="settings.dat")continue;
                 if(!Matches(Below(collection,relative),Hash(file)))return false;
             }
-            var config=Path.Combine(collection,"config.txt");
+            var config=Path.Combine(collection,"config.ini");
             if(!File.Exists(config))return false;
             var text=File.ReadAllText(config);
-            if(!Regex.IsMatch(text,@"(?m)^\s*main_script\s+main\.lua\s*$")||!Regex.IsMatch(text,@"(?m)^\s*pre_init_script\s+register\.lua\s*$"))return false;
+            if(!Regex.IsMatch(text,@"(?m)^\s*main_script\s*:\s*main\.lua\s*$")||!Regex.IsMatch(text,@"(?m)^\s*pre_init_script\s*:\s*register\.lua\s*$"))return false;
             var manifest=Path.Combine(package,"runtime","expected-skate-assets.sha256");
             if(!Matches(Path.Combine(assets,"asset-manifest.sha256"),Hash(manifest)))return false;
             foreach(var entry in Manifest(manifest,assets))if(!Matches(entry.FullPath,entry.Hash))return false;
             foreach(var entry in BullyManifest(bullyAssets))if(!Matches(Below(Path.Combine(collection,"assets"),entry.Relative),entry.Hash))return false;
             foreach(var file in Directory.GetFiles(Path.Combine(package,"runtime","Microsoft.VC80.OpenMP")))
                 if(!File.Exists(Path.Combine(game,"Microsoft.VC80.OpenMP",Path.GetFileName(file))))return false;
-            return File.Exists(Path.Combine(game,"_derpy_script_loader","config.txt"));
+            return true;
+        }
+        public static void CheckAudio(string root) {
+            foreach(var entry in Manifest(Path.Combine(root,"asset-manifest.sha256"),root)) {
+                if(!entry.Relative.StartsWith("private/audio/",StringComparison.Ordinal)||!Matches(entry.FullPath,entry.Hash))throw new InvalidDataException("Local Skate 3 audio is missing or changed. Run with --setup to prepare it again.");
+            }
+            if(!File.Exists(Path.Combine(root,"private","audio","audio_manifest.json")))throw new InvalidDataException("Local Skate 3 sound data is incomplete.");
+        }
+        public static bool Installed(string package,string game,string bullyAssets,string audioAssets) {
+            if(!Installed(package,game,bullyAssets))return false;
+            var collection=Path.Combine(game,"_derpy_script_loader","scripts","BullyMotion");
+            if(!Matches(Path.Combine(collection,"SkateAudioWorker.exe"),Hash(Path.Combine(package,"runtime","SkateAudioWorker.exe"))))return false;
+            var path=Path.Combine(collection,"audio-path.txt");
+            return File.Exists(path)&&String.Equals(File.ReadAllText(path).Trim(),audioAssets,StringComparison.OrdinalIgnoreCase);
         }
         // Windows argv quoting, with no shell evaluation of user-selected paths.
         public static string Quote(string value) {
@@ -145,9 +163,9 @@ namespace BullySkate {
             output.Append('\\',slashes*2);return output.Append('"').ToString();
         }
         public static void Install(string package,Selection selection,Action<string> progress) {
-            if(Installed(package,selection.Game,selection.BullyAssets)){progress("Your skating build is already up to date.");return;}
+            if(Installed(package,selection.Game,selection.BullyAssets,selection.AudioAssets)){progress("Your skating build is already up to date.");return;}
             progress("Backing up and installing the skating build...");
-            var arguments="-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "+Quote(Path.Combine(package,"Install.ps1"))+" -GamePath "+Quote(selection.Game)+" -SkateAssets "+Quote(selection.Assets)+" -BullyAssets "+Quote(selection.BullyAssets);
+            var arguments="-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "+Quote(Path.Combine(package,"Install.ps1"))+" -GamePath "+Quote(selection.Game)+" -SkateAssets "+Quote(selection.Assets)+" -BullyAssets "+Quote(selection.BullyAssets)+" -AudioAssets "+Quote(selection.AudioAssets);
             var start=new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),"WindowsPowerShell","v1.0","powershell.exe"),arguments) {
                 WorkingDirectory=package,UseShellExecute=false,CreateNoWindow=true,WindowStyle=ProcessWindowStyle.Hidden,
                 RedirectStandardOutput=true,RedirectStandardError=true
@@ -162,7 +180,7 @@ namespace BullySkate {
                 process.Start();process.BeginOutputReadLine();process.BeginErrorReadLine();process.WaitForExit();
                 if(process.ExitCode!=0)throw new IOException("Installation could not finish.\r\n\r\n"+transcript.ToString());
             }
-            if(!Installed(package,selection.Game,selection.BullyAssets))throw new IOException("The installed files did not pass verification. The game has not been started.");
+            if(!Installed(package,selection.Game,selection.BullyAssets,selection.AudioAssets))throw new IOException("The installed files did not pass verification. The game has not been started.");
             progress("Installed files verified.");
         }
         public static ProcessStartInfo GameStartInfo(string game,bool windowed,bool dpiFix) {
@@ -207,6 +225,9 @@ namespace BullySkate {
             return new ProcessStartInfo("steam://rungameid/12200") {UseShellExecute=true};
         }
         public static void StartSteamGame(string game,bool dpiFix) {
+            StartSteamGame(game,dpiFix,null);
+        }
+        public static void StartSteamGame(string game,bool dpiFix,string display) {
             CheckRunning(game);
             var start=SteamGameStartInfo(game);
             // A launch request uses Steam's normal authentication/startup. No
@@ -214,7 +235,7 @@ namespace BullySkate {
             // One-use local setting lets the ASI apply DPI awareness before HWND
             // creation even though Steam creates the game in its own environment.
             var hint=Path.Combine(game,"_derpy_script_loader","bullyskate-launch.txt");
-            File.WriteAllText(hint,dpiFix?"dpi-aware\n":"dpi-original\n",new System.Text.UTF8Encoding(false));
+            File.WriteAllText(hint,(dpiFix?"dpi-aware\n":"dpi-original\n")+(display==null?"":"display="+display+"\n"),new System.Text.UTF8Encoding(false));
             try {using(var launch=Process.Start(start)) {}}
             catch {if(File.Exists(hint))File.Delete(hint);throw;}
         }

@@ -1,5 +1,4 @@
 using System;
-using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -7,6 +6,7 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml;
 using System.Windows.Forms;
@@ -58,19 +58,20 @@ namespace BullySkate {
             if(!File.Exists(file))return result;
             var document=new XmlDocument();document.XmlResolver=null;
             try {document.Load(file);}catch(XmlException) {Say("Saved setup could not be read. Enter the game paths again.");return result;}
-            foreach(var name in new[]{"Game","Xex","Assets","BullyAssets"}) {
+            foreach(var name in new[]{"Game","Xex","Assets","BullyAssets","AudioAssets"}) {
                 var node=document.SelectSingleNode("/BullySkate/"+name);
                 if(node!=null)result[name]=node.InnerText;
             }
             return result;
         }
-        static void Save(string file,string game,string xex,string assets,string bullyAssets) {
+        static void Save(string file,string game,string xex,string assets,string bullyAssets,string audioAssets) {
             var settings=new XmlWriterSettings { Indent=true,Encoding=new UTF8Encoding(false) };
             var temp=file+".new";
             using(var writer=XmlWriter.Create(temp,settings)) {
                 writer.WriteStartElement("BullySkate");
                 writer.WriteElementString("Game",game);writer.WriteElementString("Xex",xex);writer.WriteElementString("Assets",assets);
                 writer.WriteElementString("BullyAssets",bullyAssets);
+                writer.WriteElementString("AudioAssets",audioAssets);
                 writer.WriteEndElement();
             }
             if(File.Exists(file))File.Replace(temp,file,file+".previous");else File.Move(temp,file);
@@ -121,6 +122,11 @@ namespace BullySkate {
             RunExtractor(package,"--bully "+LauncherCore.Quote(game)+" --out "+LauncherCore.Quote(destination));
             return destination;
         }
+        static string ExtractAudio(string package,string state,string xex,string assets) {
+            var destination=Path.Combine(state,"audio-assets",Guid.NewGuid().ToString("N"));
+            RunExtractor(package,"--audio "+LauncherCore.Quote(xex)+" --skate-assets "+LauncherCore.Quote(assets)+" --out "+LauncherCore.Quote(destination));
+            return destination;
+        }
         static void RunExtractor(string package,string arguments) {
             var start=new ProcessStartInfo(Path.Combine(package,"runtime","SkateAssetExtractor.exe"),arguments) {
                 WorkingDirectory=package,UseShellExecute=false,CreateNoWindow=true,
@@ -142,7 +148,8 @@ namespace BullySkate {
                 if(args["--help"]=="true") {
                     Say("Bully Skate Launcher: first run asks for Bully and Skate 3 default.xex; later runs launch Bully.");
                     Say("Keep the complete extracted Xbox 360 Skate 3 folder around its XEX.");
-                    Say("Native display settings are the default. --windowed: experimental borderless mode.");
+                    Say("F8 > Video: fullscreen, borderless, VSync, filtering and frame limit.");
+                    Say("--windowed: borderless for this launch. --fullscreen: fullscreen for this launch.");
                     Say("--setup: change game paths / re-extract. --fullscreen: keep the native display path.");
                     Say("--check: verify saved setup. --no-launch: prepare or verify without starting Bully.");
                     Say("Display scaling is corrected automatically. --no-dpi-fix: use original Windows scaling for troubleshooting.");
@@ -178,7 +185,7 @@ namespace BullySkate {
                         var package=Unpack(state);
                         bool setup=args["--setup"]=="true"||args.ContainsKey("--game")||args.ContainsKey("--xex")||!saved.ContainsKey("Assets")||!saved.ContainsKey("Game")||!saved.ContainsKey("Xex");
                         if(args["--check"]=="true"&&setup)throw new IOException("No saved setup is available. Run the launcher normally first.");
-                        string game,xex,assets,bullyAssets;bool saveSetup=setup;
+                        string game,xex,assets,bullyAssets,audioAssets;bool saveSetup=setup;
                         if(setup) {
                             Say("First-run setup extracts your local Skate 3 data and installs the skating mod.");
                             Say("Choose each game in the file-selection windows. No path copying is needed.");
@@ -197,35 +204,43 @@ namespace BullySkate {
                             game=saved["Game"];xex=saved["Xex"];assets=saved["Assets"];Say("Using your saved setup.");
                             bullyAssets=Value(saved,"BullyAssets",null);
                             var receipt=bullyAssets==null?null:Path.Combine(bullyAssets,"receipt.json");
-                            bool currentGeometry=receipt!=null&&File.Exists(receipt)&&Regex.IsMatch(File.ReadAllText(receipt),@"""schema""\s*:\s*3\b");
+                            bool currentGeometry=receipt!=null&&File.Exists(receipt)&&Regex.IsMatch(File.ReadAllText(receipt),@"""schema""\s*:\s*7\b");
                             if(!currentGeometry) {
                                 if(args["--check"]=="true")throw new IOException("Run the launcher normally once to prepare your local Bully collision and rig data.");
                                 LauncherCore.CheckRunning(game);bullyAssets=ExtractBully(package,state,game);saveSetup=true;
                             }
                         }
+                        audioAssets=setup?null:Value(saved,"AudioAssets",null);
+                        if(audioAssets==null||!File.Exists(Path.Combine(audioAssets,"private","audio","audio_manifest.json"))) {
+                            if(args["--check"]=="true")throw new IOException("Open the launcher normally once to prepare Skate 3 sounds from your files.");
+                            LauncherCore.CheckRunning(game);audioAssets=ExtractAudio(package,state,xex,assets);saveSetup=true;
+                        }
+                        LauncherCore.CheckAudio(audioAssets);
                         var selection=LauncherCore.Check(package,game,assets,bullyAssets,Say);
+                        selection.AudioAssets=audioAssets;
                         if(args["--check"]=="true") {
-                            if(!LauncherCore.Installed(package,selection.Game,selection.BullyAssets))throw new IOException("The mod installation needs repair. Run the launcher normally.");
+                            if(!LauncherCore.Installed(package,selection.Game,selection.BullyAssets,audioAssets))throw new IOException("The mod installation needs repair. Run the launcher normally.");
                             Say("Saved setup and installed files verified.");return 0;
                         }
                         LauncherCore.Install(package,selection,Say);
-                        if(saveSetup)Save(settings,selection.Game,xex,selection.Assets,selection.BullyAssets);
+                        if(saveSetup)Save(settings,selection.Game,xex,selection.Assets,selection.BullyAssets,audioAssets);
                         if(args["--no-launch"]=="true") {Say("Ready. Open this launcher again to play.");return 0;}
                         bool windowed=args["--windowed"]=="true"&&args["--fullscreen"]!="true";
                         bool dpiFix=args["--no-dpi-fix"]!="true";
                         bool steam=LauncherCore.IsSteamInstallation(selection.Game);
                         if(!steam&&GameCompatibility.Inspect(Path.Combine(selection.Game,"Bully.exe")).SteamWrapped)throw new IOException("This Steam-wrapped copy must be selected from Steam's installed Bully folder. In Steam use Manage > Browse local files, then select that Bully.exe in the launcher.");
-                        Say(steam?"Starting your selected Bully installation through Steam...":"Starting Bully "+(windowed?"in an experimental borderless window":"using native display settings")+"...");
+                        AudioStartup.Ensure(package,Say);
+                        Say(steam?"Starting your selected Bully installation through Steam...":"Starting Bully...");
                         Say(dpiFix?"Windows display scaling correction enabled.":"Using original Windows display scaling.");
-                        Say("In gameplay: F6 skating; F5 native Bully; F8 Edit Skater / FOV.");
+                        Say("Right stick click + D-pad Down: Skate / Bully. Right stick click + D-pad Left: Skate menu.");
                         if(steam) {
-                            LauncherCore.StartSteamGame(selection.Game,dpiFix);
+                            LauncherCore.StartSteamGame(selection.Game,dpiFix,args["--fullscreen"]=="true"?"0":windowed?"1":null);
                             var steamConsole=GetConsoleWindow();if(steamConsole!=IntPtr.Zero)ShowWindow(steamConsole,0);
                             return 0;
                         }
                         var console=GetConsoleWindow();
                         if(console!=IntPtr.Zero)ShowWindow(console,0);
-                        try {using(var gameProcess=LauncherCore.StartGame(selection.Game,windowed,dpiFix))Say("Bully started. Process "+gameProcess.Id+".");}
+                        try {var start=LauncherCore.GameStartInfo(selection.Game,windowed,dpiFix);if(args["--fullscreen"]=="true")start.EnvironmentVariables["BULLY_SKATE_DISPLAY"]="0";using(var gameProcess=Process.Start(start))Say("Bully started. Process "+gameProcess.Id+".");}
                         catch {if(console!=IntPtr.Zero)ShowWindow(console,5);throw;}
                         return 0;
                     } finally {mutex.ReleaseMutex();}

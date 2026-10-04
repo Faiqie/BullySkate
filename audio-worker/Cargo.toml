@@ -1,0 +1,22 @@
+[package]
+name = "bully-skate-audio-worker"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-only"
+
+[[bin]]
+name = "SkateAudioWorker"
+path = "src/main.rs"
+
+[dependencies]
+skate-audio = {path="../vendor/skate-audio/skate-audio"}
+serde = {version="1",features=["derive"]}
+serde_json = "1"
+cpal = "0.15.3"
+
+[workspace]
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

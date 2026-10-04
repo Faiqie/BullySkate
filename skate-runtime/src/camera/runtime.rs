@@ -22,6 +22,7 @@ pub(crate) struct CameraRuntime {
     shakes: [ShakeSamples; 2],
     trajectories: [TrajectoryResult; 3],
     pub frame: Option<CameraFrame>,
+    pub camera_type: u32,
     /// Immutable physical subject publication consumed by the camera graph.
     /// Rendering may inspect this snapshot for diagnostics without rebuilding
     /// subject fields from mutable skater state.
@@ -58,7 +59,7 @@ impl CameraRuntime {
         Ok(Self { manager: CameraMan::new(), subject: SubjectPublisher::new(), graph,
             shots: StockShots::from_collections(&data)?, settings: settings::manager_settings(&data)?,
             compass_settings: settings::compass_settings(&data)?, shakes: [samples("1.shk")?, samples("2.shk")?],
-            trajectories: core::array::from_fn(|_| TrajectoryResult::new()), frame: None,
+            trajectories: core::array::from_fn(|_| TrajectoryResult::new()), frame: None, camera_type: 1,
             latest_subject: None,
             simulation_rate_requests: Vec::new(),
             manual_cam: ManualCam::default(),

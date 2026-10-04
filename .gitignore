@@ -22,6 +22,16 @@ FileTableBully*
 console-setup.xml*
 extraction-receipt.json
 source-path.txt
+audio-path.txt
+audio_manifest.json
+*.wav
+*.ogg
+*.mp3
+*.grain
+*.snr
+*.abk
+*.bnk
+*.mxb
 # Build outputs and private diagnostics.
 /work/
 /prepared/

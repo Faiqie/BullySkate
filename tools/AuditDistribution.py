@@ -3,9 +3,9 @@ from pathlib import Path
 import json, subprocess, sys, zipfile, hashlib, re
 
 ROOT=Path(__file__).resolve().parents[1]
-FORBIDDEN={'.xex','.img','.dir','.nif','.nft','.dds','.abin','.bmgeo','.bmrails','.rwcmset','.vlt'}
+FORBIDDEN={'.xex','.img','.dir','.nif','.nft','.dds','.abin','.bmgeo','.bmrails','.rwcmset','.vlt','.wav','.ogg','.mp3','.grain','.snr','.abk','.bnk','.mxb'}
 PRIVATE={'private','skate-assets','bully-assets','assets'}
-NAMES={'jimmy-bind.json','vehicle-bounds.txt','console-setup.xml','extraction-receipt.json','source-path.txt','viewmodel_data.h','stock.rs','stock_fields.rs'}
+NAMES={'jimmy-bind.json','vehicle-bounds.txt','world-models.txt','console-setup.xml','extraction-receipt.json','source-path.txt','audio-path.txt','audio_manifest.json','video-settings.dat','performance-settings.dat','viewmodel_data.h','stock.rs','stock_fields.rs'}
 
 def check_name(name):
     path=Path(name)
@@ -19,7 +19,7 @@ def check_name(name):
 def source_files():
     if (ROOT/'.git').exists():
         result=subprocess.check_output(['git','-C',str(ROOT),'ls-files','--cached','--others','--exclude-standard','-z'])
-        return [n.decode() for n in result.split(b'\0') if n]
+        return [n.decode() for n in result.split(b'\0') if n and (ROOT/n.decode()).is_file()]
     files=[]
     for file in ROOT.rglob('*'):
         if not file.is_file():continue

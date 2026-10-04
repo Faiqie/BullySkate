@@ -5,16 +5,14 @@ use skate_dynamics::{SolidBody,SolidCollider,solid::{sweep_sphere,collider_trian
 use std::sync::{Arc,OnceLock};
 #[derive(Clone)]
 pub struct Actor {pub id:u64,pub position:Vector,pub velocity:Vector,pub height:f32,pub radius:f32,shape:SharedShape}
-impl Actor {
- pub fn new(id:u64,position:Vector,velocity:Vector)->Self{Self::with_dimensions(id,position,velocity,1.56,0.28)}
- pub fn with_dimensions(id:u64,position:Vector,velocity:Vector,height:f32,radius:f32)->Self{
-  let height=height.clamp(0.8,2.6);let radius=radius.clamp(0.18,0.55).min(height*0.45);
+impl Actor{
+ pub fn new(id:u64,position:Vector,velocity:Vector,height:f32,radius:f32)->Self{
+  let height=height.clamp(0.6,2.8);let radius=radius.clamp(0.18,0.5).min(height*0.45);
   Self{id,position,velocity,height,radius,shape:SharedShape::capsule_y(height*0.5-radius,radius)}
  }
 }
 pub fn solid(actor:&Actor)->SolidBody {
- let shape=actor.shape.clone();
- let center=actor.position+Vector::Y*(actor.height*0.5);
+ let shape=actor.shape.clone();let center=actor.position+Vector::Y*(actor.height*0.5);
  let pose=Pose::from_translation(center);
  SolidBody{id:actor.id,pose,center_of_mass:center,inertia_rotation:Rotation::IDENTITY,
   inverse_mass:0.,inverse_inertia:Vector::ZERO,linvel:actor.velocity,angvel:Vector::ZERO,
@@ -56,13 +54,11 @@ impl ExternalQueries for MovingQueries {
     owned=collider_triangles(&SolidCollider{shape:collider.shape.clone(),pose:Pose::IDENTITY,friction:collider.friction});&owned
    };
    for triangle in local{
-    let points=triangle.map(|mut p|{
-     if let Some(capsule)=collider.shape.as_capsule(){
-      let half=capsule.segment.a.y.abs();let radius=capsule.radius;
-      p[0]*=radius/0.28;p[2]*=radius/0.28;
-      p[1]=if p[1].abs()<=0.5{p[1]*(half/0.5)}else{p[1].signum()*(half+(p[1].abs()-0.5)*radius/0.28)};
-     }
-     collider.pose*Vector::from_array(p)
+    let points=triangle.map(|p|{
+     let mut point=Vector::from_array(p);
+     if let Some(capsule)=collider.shape.as_capsule(){let radial=capsule.radius/0.28;let half=(capsule.segment.b.y-capsule.segment.a.y).abs()*0.5;
+      point.x*=radial;point.z*=radial;point.y=if point.y>0.5{half+(point.y-0.5)*radial}else if point.y< -0.5{-half+(point.y+0.5)*radial}else{point.y*half/0.5};
+     }collider.pose*point
     });
     let lo=points[0].min(points[1]).min(points[2]);let hi=points[0].max(points[1]).max(points[2]);
     if (center-center.clamp(lo,hi)).length_squared()>radius*radius{continue}
@@ -80,7 +76,7 @@ pub fn queries(actors:&[Actor],vehicles:&[super::bully_vehicles::Vehicle])->Arc<
 mod tests{
  use super::*;
  #[test]fn broad_phase_preserves_nearest_exact_sphere_cast(){
-  let bodies:Vec<_>=(0..24).map(|i|solid(&Actor::new(i,Vector::new((i%6) as f32*2.,0.,(i/6) as f32*2.),Vector::ZERO))).collect();
+  let bodies:Vec<_>=(0..24).map(|i|solid(&Actor::new(i,Vector::new((i%6) as f32*2.,0.,(i/6) as f32*2.),Vector::ZERO,1.2+(i%4) as f32*0.2,0.22+(i%3) as f32*0.06))).collect();
   let optimized=MovingQueries(bodies.clone());
   let mut seed=19u32;
   for _ in 0..2000{
@@ -94,7 +90,7 @@ mod tests{
   }
  }
  #[test]fn a_local_query_does_not_publish_distant_capsule_faces(){
-  let body=solid(&Actor::new(1,Vector::ZERO,Vector::ZERO));
+  let body=solid(&Actor::new(1,Vector::ZERO,Vector::ZERO,1.56,0.28));
   let query=MovingQueries(vec![body]);let near=query.nearby(Vector3::new(0.,0.1,0.),0.2);
   assert!(!near.is_empty());assert!(query.nearby(Vector3::new(30.,0.,0.),0.2).is_empty());
   for tri in near{let p=tri.map(|p|Vector::new(p.x,p.y,p.z));let lo=p[0].min(p[1]).min(p[2]);let hi=p[0].max(p[1]).max(p[2]);

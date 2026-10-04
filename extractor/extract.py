@@ -126,13 +126,13 @@ def extract_bully(game, destination):
         print('Preparing collision and car bounds from your Bully World.img...',flush=True)
         world=bully_geometry.export(game,stage)
         print('Preparing area-specific grind rails...',flush=True)
-        rails=bully_rails.export(stage)
+        rails=bully_rails.export(stage,world['grind_models'])
         print('Preparing Jimmy\'s native bind rig...',flush=True)
         bully_bind.export(game,stage/'jimmy-bind.json')
-        names=['jimmy-bind.json','vehicle-bounds.txt','world.bmgeo','world.bmrails']
+        names=['jimmy-bind.json','vehicle-bounds.txt','world.bmgeo','world.bmrails','world-models.txt']
         lines=[digest(stage/name)+'  '+name for name in names]
         (stage/'asset-manifest.sha256').write_text('\n'.join(lines)+'\n',encoding='ascii')
-        (stage/'receipt.json').write_text(json.dumps({'schema':3,'game':str(game),'directory_sha256':digest(directory),
+        (stage/'receipt.json').write_text(json.dumps({'schema':7,'game':str(game),'directory_sha256':digest(directory),
             'triangles':world['triangles'],'rails':rails['convex_top_grind_edges']},indent=2))
         stage.rename(destination)
     print('Bully preparation verified: collision, rails, rig and vehicle bounds; original archives preserved.',flush=True)
@@ -142,11 +142,17 @@ if __name__ == '__main__':
     choice=parser.add_mutually_exclusive_group(required=True)
     choice.add_argument('--xex',type=Path)
     choice.add_argument('--bully',type=Path)
+    choice.add_argument('--audio',type=Path)
+    parser.add_argument('--skate-assets',type=Path)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--manifest', type=Path)
     args = parser.parse_args()
     try:
-        if args.bully:extract_bully(args.bully,args.out)
+        if args.audio:
+            import skate_audio
+            if not args.skate_assets:raise ValueError('--skate-assets is required for audio preparation')
+            skate_audio.extract(args.audio,args.skate_assets,args.out)
+        elif args.bully:extract_bully(args.bully,args.out)
         elif args.manifest:extract(args.xex,args.out,args.manifest)
         else:raise ValueError('--manifest is required with --xex')
     except (ValueError, OSError, RuntimeError) as error:

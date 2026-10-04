@@ -9,11 +9,11 @@ pub struct Interactions {
  pub tow:Option<u64>,pub hand:Option<super::bully_vehicles::HandAnchor>,pub hits:u32,pub hit_id:u32,
  rb:bool,cooldown:f32,attack:Option<Attack>,
 }
-struct Attack {id:u64,age:f32,old:[Vector;9],hit:bool}
-fn deck_points(physics:&GamePhysics)->[Vector;9]{
+struct Attack {id:u64,age:f32,old:[Vector;5],hit:bool}
+fn deck_points(physics:&GamePhysics)->[Vector;5]{
  let deck=physics.board.part_transforms()[6];let center=Vector::new(deck.translation.x,deck.translation.y,deck.translation.z);
  let forward=Vector::from_array(deck.basis.columns[2])*0.41;
- std::array::from_fn(|i|center+forward*(i as f32/4.-1.))
+ [center-forward,center-forward*0.5,center,center+forward*0.5,center+forward]
 }
 fn rider(skater:&SkaterRuntime)->(Vector,Vector){
  let root=skater.animated_skeleton.roots.animation_to_world;
@@ -28,7 +28,7 @@ impl Interactions {
   if skater.player_input.pending_teleport().is_some(){self.suspend();return}
   if category==500&&edge&&self.cooldown==0.&&skater.player_input.physical.off_board.flag_311!=0{
    let target=actors.iter().filter(|a|{
-    let d=a.position-root;d.x*d.x+d.z*d.z<2.1*2.1&&d.y.abs()<1.4&&d.dot(forward)>0.05
+    let d=a.position-root;d.x*d.x+d.z*d.z<(1.65+a.radius)*(1.65+a.radius)&&d.y.abs()<1.1&&d.dot(forward)>0.05
    }).min_by(|a,b|a.position.distance_squared(root).total_cmp(&b.position.distance_squared(root)));
    if let Some(a)=target{self.attack=Some(Attack{id:a.id,age:0.,old:deck_points(physics),hit:false});self.cooldown=0.75;}
   }

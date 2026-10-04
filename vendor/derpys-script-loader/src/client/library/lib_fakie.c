@@ -8,7 +8,6 @@
 #include <stddef.h>
 #include "game_compat.h"
 #include "controller_input.h"
-#include "gameplay_input.h"
 
 typedef struct Vec { float x,y,z; } Vec;
 static int readable(const void *p,size_t bytes);
@@ -39,7 +38,6 @@ static int focused(void) { return GetForegroundWindow()==getGameWindow(); }
 static BS_ControllerInput controller_input;
 static BS_PadState controller_state;
 static wchar_t controller_library[32768];
-static int context_pending;
 static void poll_controller(void) {
     static int reported=0;
     if(!controller_library[0]) {
@@ -70,26 +68,18 @@ void fakieUpdateController(void *raw) {
     if(!entered){FILE *file=fopen("_derpy_script_loader/logs/skate-input.log","a");if(file){fprintf(file,"Controller hook started\n");fclose(file);}entered=1;}
     if(controller==getGameControllers())poll_controller();
     if(index<0||index>3||controller!=getGameControllers()+index)return;
-    held=controller_state.connected?controller_state.buttons&16:0;
-    if(controller_state.connected) {
+    held=controller_state.kind>=2?controller_state.buttons&16:0;
+    if(controller_state.kind>=2) {
         if(controller->is_joy) {
-            pause=(unsigned)getGameBindingsBasic()[BS_PAUSE_ACTION];
+            pause=(unsigned)getGameBindingsBasic()[15];
             controller->input.joystick.buttons&=(short)~pause;
             controller->pressed&=~pause;controller->released&=~pause;
             if(held)controller->input.joystick.buttons|=(short)pause;
             if(held&&!previous)controller->pressed|=pause;
             if(!held&&previous)controller->released|=pause;
-        } else if(held) {
-            int binding=getGameBindingsAdvanced(0)[BS_PAUSE_ACTION];
-            if(binding>=0&&binding<256)controller->input.keyboard[binding]=0x80;
-            controller->input.keyboard[DIK_ESCAPE]=0x80;
-        }
+        } else if(held)controller->input.keyboard[DIK_ESCAPE]=0x80;
     }
     previous=held;
-    if(context_pending&&!getGamePaused()&&focused()){
-        bs_context_action(controller,(unsigned)getGameBindingsBasic()[9],getGameBindingsAdvanced(0)[9]);
-        context_pending=0;
-    }
 }
 static unsigned char key_down[256],key_edge[256];static int keys_focused=0;
 static void poll_keys(void){
@@ -168,46 +158,33 @@ static int FS_Active(lua_State *lua) {
 }
 /* Source input comes directly from SDL/XInput/Win32. Suppress native movement on
  * the selected controller while keeping Escape/Start available to pause. */
+static void mute_gameplay_input(game_controller *controller,unsigned pause_mask){
+ unsigned char escape=(unsigned char)controller->input.keyboard[1];
+ short pause=controller->input.joystick.buttons&(short)pause_mask;
+ int pressed=controller->pressed&(int)pause_mask;
+ memset(&controller->input,0,sizeof(controller->input));controller->pressed=pressed;
+ controller->input.keyboard[1]=(char)escape;controller->input.joystick.buttons=pause;
+}
 static int FS_MuteGameplay(lua_State *lua){
  int index=getGamePrimaryControllerIndex();
- if(enabled&&index>=0&&index<4) {
-  game_controller *controller=getGameControllers()+index;
-  bs_mute_gameplay(controller,(unsigned)getGameBindingsBasic()[BS_PAUSE_ACTION],getGameBindingsAdvanced(0)[BS_PAUSE_ACTION]);
- }
+ if(enabled&&index>=0&&index<4)mute_gameplay_input(getGameControllers()+index,(unsigned)getGameBindingsBasic()[15]);
  return 0;
-}
-/* Yield a context action to Bully after releasing our controller filter. */
-static int FS_Interact(lua_State *lua){
- if(enabled)context_pending=1;
- return 0;
-}
-static int FS_BoardPresent(lua_State *lua){
- int present=0;
- if(enabled)__try {
-  char *ped=*(char**)0xC1AEA8,*board;
-  if(readable(ped,0x1D4)){board=*(char**)(ped+0x1D0);present=readable(board,0x110)&&*(short*)(board+0x10E)==437&&readable(*(void**)(board+0x18),8);}
- }__except(EXCEPTION_EXECUTE_HANDLER){}
- lua_pushboolean(lua,present);return 1;
 }
 /* PedGetPosXYZ returns the collision origin. PedSetPosXYZ adds -bounds.min.z
  * to a requested foot position; use that same model offset for NPC contacts. */
 static int FS_PedBaseOffset(lua_State *lua){
- float offset=0.98f,height=1.56f,radius=0.28f;char *ped,*entity;float *bounds;
+ float offset=0.98f;char *ped,*entity;float *bounds;
  if(enabled)__try{
   ped=(char*)getGamePedFromId((int)luaL_checknumber(lua,1),0);
   if(readable(ped,0x1558)){
    entity=*(char**)(ped+0x1554);if(!entity)entity=ped;
    if(readable(entity,0x110)){
     bounds=((float*(__cdecl*)(void*))0x51AF50)(entity);
-    if(readable(bounds,44)&&isfinite(bounds[6])&&bounds[6]<=0&&bounds[6]>=-4){
-     offset=-bounds[6];
-     if(isfinite(bounds[10])&&bounds[10]>bounds[6])height=fminf(2.6f,fmaxf(0.8f,bounds[10]-bounds[6]));
-     if(isfinite(bounds[8])&&isfinite(bounds[4])&&isfinite(bounds[9])&&isfinite(bounds[5]))radius=fminf(0.55f,fmaxf(0.18f,0.5f*fmaxf(bounds[8]-bounds[4],bounds[9]-bounds[5])));
-    }
+    if(readable(bounds,28)&&isfinite(bounds[6])&&bounds[6]<=0&&bounds[6]>=-4)offset=-bounds[6];
    }
   }
  }__except(EXCEPTION_EXECUTE_HANDLER){}
- lua_pushnumber(lua,offset);lua_pushnumber(lua,height);lua_pushnumber(lua,radius);return 3;
+ lua_pushnumber(lua,offset);return 1;
 }
 /* Called from ControllerUpdating during the board equip transition only. */
 static int FS_BoardMountInput(lua_State *lua) {
@@ -238,14 +215,14 @@ static int FS_SkaterOptions(lua_State *lua){
  unsigned k;
  if(lua_gettop(lua)){
   SkaterPreferences next;
-  for(k=0;k<11;k++)next.values[k]=(float)luaL_checknumber(lua,k+1);
+  for(k=0;k<10;k++)next.values[k]=(float)luaL_checknumber(lua,k+1);
   if(!skater_preferences_valid(&next))return luaL_error(lua,"Invalid skater settings");
   if(!skater_preferences_save(&next)){lua_pushboolean(lua,0);return 1;}
   skater_preferences=next;lua_pushboolean(lua,1);return 1;
  }
  skater_preferences_load();
- for(k=0;k<11;k++)lua_pushnumber(lua,skater_preferences.values[k]);
- return 11;
+ for(k=0;k<10;k++)lua_pushnumber(lua,skater_preferences.values[k]);
+ return 10;
 }
 static int FS_SkateConfigure(lua_State *lua){
  lua_pushboolean(lua,ipc_skate_configure(&skater_preferences));return 1;
@@ -275,9 +252,9 @@ static int FS_SkateStep(lua_State *lua){
     for(k=0;k<14;k++)lua_pushnumber(lua,result[k]);return 15;
 }
 static int FS_SkateActors(lua_State *lua){
- void **host=luaL_checkudata(lua,1,"BullyMotion.Skate");float rows[24*9];unsigned n,i;
+ void **host=luaL_checkudata(lua,1,"BullyMotion.Skate");float rows[24*7];unsigned n,i;
  luaL_checktype(lua,2,LUA_TTABLE);n=(unsigned)luaL_checknumber(lua,3);if(n>24)n=24;
- for(i=0;i<n*9;i++){lua_rawgeti(lua,2,i+1);rows[i]=(float)luaL_checknumber(lua,-1);lua_pop(lua,1);}
+ for(i=0;i<n*7;i++){lua_rawgeti(lua,2,i+1);rows[i]=(float)luaL_checknumber(lua,-1);lua_pop(lua,1);}
  lua_pushboolean(lua,enabled&&*host&&fs_skate_actors(*host,rows,n));return 1;
 }
 
@@ -528,7 +505,6 @@ int dslopen_fakie(lua_State *lua) {
     lua_register(lua,"FS_Pad",FS_Pad);
     lua_register(lua,"FS_Key",FS_Key);lua_register(lua,"FS_Active",FS_Active);
     lua_register(lua,"FS_MuteGameplay",FS_MuteGameplay);
-    lua_register(lua,"FS_Interact",FS_Interact);lua_register(lua,"FS_BoardPresent",FS_BoardPresent);
     lua_register(lua,"FS_PedBaseOffset",FS_PedBaseOffset);
     lua_register(lua,"FS_BoardMountInput",FS_BoardMountInput);
     

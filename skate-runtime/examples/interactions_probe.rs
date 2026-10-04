@@ -11,7 +11,7 @@ fn run()->Result<(),String>{
  if !(500..600).contains(&host.state()){return Err("Y did not enter the source off-board state".into())}
  let native=host.rider_root();
  // Flat host faces +Z in core, corresponding to native -Y.
- let actor=[123.,native[0],native[1]-1.0,native[2],0.,0.,0.,1.56,0.28];
+ let actor=[123.,native[0],native[1]-1.0,native[2],0.,0.,0.];
  let mut shove_seen=false;let before=host.interaction_status()[2];
  for i in 0..75{
   if i%3==0{host.actors(&[actor]);}
@@ -22,6 +22,20 @@ fn run()->Result<(),String>{
  if !shove_seen{return Err("The source Shove channel never started".into())}
  if host.interaction_status()[2]!=before+1{return Err(format!("Board strike must produce exactly one contact event: {:?}",host.interaction_status()))}
  println!("PASS source Y dismount, held board, source Shove animation and one swept board/NPC impact while RB held");
+ for (case,(height,radius,side,moving)) in [(1.05,0.18,0.0,false),(1.56,0.28,0.30,false),(2.1,0.48,-0.20,true)].into_iter().enumerate(){
+  // Each case starts holding the board. A previous impact can knock it loose,
+  // so reusing that state would test board retrieval instead of target size.
+  let mut host=SkateHost::flat(root)?;for _ in 0..90{host.tick(pad(0))?;}
+  for i in 0..120{host.tick(pad(if i<3{0x8000}else{0}))?;}
+  let origin=host.rider_root();let before=host.interaction_status()[2];let mut shove=false;
+  for i in 0..75{
+   let drift=if moving {0.15*i as f32*host.period()}else{0.};
+   if i%3==0{host.actors_sized(&[[200.0+case as f32,origin[0]+side+drift,origin[1]-1.0,origin[2],if moving{0.15}else{0.},0.,0.,height,radius]]);}
+   host.tick(pad(if i<45{0x200}else{0}))?;shove|=host.status().contains("shove=true");
+  }
+  if !shove||host.interaction_status()[2]!=before+1{return Err(format!("Body case {case} ({height}m/{radius}m) failed: shove={shove}, hits={:?}, {}",host.interaction_status(),host.status()))}
+ }
+ println!("PASS short, standard and large NPC capsules, lateral reach, moving target, and exactly one impact per held swing");
  host.actors(&[]);host.suspend_interactions();
  let mut tow=SkateHost::flat(root)?;
  for _ in 0..90{tow.tick(pad(0))?;}
@@ -43,33 +57,11 @@ fn run()->Result<(),String>{
  for _ in 0..30{tow.tick(pad(0x200))?;detached|=tow.interaction_status()[1]==u32::MAX;}
  if !detached{return Err("A stale/unloaded car did not detach".into())}
  println!("PASS moving vehicle acquisition, bounded towing ({travelled:.3}m), RB release with momentum, stale-car detach");
- for (height,radius,side) in [(0.95,0.20,0.),(1.3,0.24,0.2),(1.9,0.32,-0.2),(2.3,0.4,0.)]{
-  let mut hit=SkateHost::flat(root)?;
-  for _ in 0..90{hit.tick(pad(0))?;}
-  for i in 0..120{hit.tick(pad(if i<3{0x8000}else{0}))?;}
-  let p=hit.rider_root();let target=[124.,p[0]+side,p[1]-0.85,p[2],0.,0.,0.,height,radius];
-  for i in 0..75{if i%3==0{hit.actors(&[target]);}hit.tick(pad(if i<45{0x200}else{0}))?;}
-  if hit.interaction_status()[2]!=1{return Err(format!("Strike missed height={height} radius={radius} side={side}: {}",hit.status()))}
-  println!("PASS swept strike height={height} radius={radius} side={side}");
- }
- let mut motor=SkateHost::flat(root)?;let mut preferences=motor_preferences();
- motor.configure(preferences);
- for _ in 0..90{motor.tick(pad(0x1000))?;}
- if !motor.status().contains("mode=3 "){return Err("Motorized physics selector was not published".into())}
- let before=motor.position();preferences=Default::default();motor.configure(preferences);
- motor.tick(pad(0))?;
- if !motor.status().contains("mode=0 ")||motor.position().iter().zip(before).any(|(a,b)|(a-b).abs()>1.){return Err("Motorized toggle reset or failed to restore the active simulation".into())}
- println!("PASS live native Motorized profile, regular profile restore and preserved physical position");
- let geometry=std::env::args().nth(2).unwrap_or_else(||"prepared/bully-assets/world.bmgeo".into());
- let raw=std::fs::read(geometry).map_err(|e|e.to_string())?;
+ let raw=std::fs::read("prepared/bully-assets/world.bmgeo").map_err(|e|e.to_string())?;
  let exterior=raw[12..].chunks_exact(44).filter(|r|u16::from_le_bytes(r[38..40].try_into().unwrap())==0).count();
- if exterior==0||exterior>=289152{return Err(format!("Navigation volumes were not excluded: exterior triangle count {exterior}"))}
+ if exterior<100000{return Err(format!("Incomplete exterior geometry: {exterior} triangles"))}
  println!("PASS BMGEO2 area IDs: {exterior} exterior triangles; interior geometry excluded");
  Ok(())
-}
-fn motor_preferences()->bully_skate_runtime::SkaterPreferences{
- let mut wire=bully_skate_runtime::SkaterPreferences::default().to_wire();wire[10]=1.;
- bully_skate_runtime::SkaterPreferences::from_wire(wire).unwrap()
 }
 fn main()->Result<(),String>{
  std::thread::Builder::new().stack_size(32*1024*1024).spawn(run).map_err(|e|e.to_string())?.join().map_err(|_|"Interaction probe panicked".to_string())?

@@ -22,6 +22,7 @@ mod bully_vehicles;
 mod bully_interactions;
 mod preferences;
 mod session_marker;
+mod audio_output;
 pub use preferences::SkaterPreferences;
 pub struct SkateHost {
  physics:physics::GamePhysics,skater:physics::SkaterRuntime,
@@ -31,7 +32,7 @@ pub struct SkateHost {
  actors:Vec<bully_actors::Actor>,
  preferences:SkaterPreferences,
  marker:session_marker::SessionMarker,
- geometry:Option<std::path::PathBuf>,area:u32,
+ geometry:Option<std::path::PathBuf>,area:u32,phase:u32,
  vehicles:Vec<bully_vehicles::Vehicle>,interactions:bully_interactions::Interactions,actor_age:f32,
 }
 impl SkateHost {
@@ -43,16 +44,19 @@ impl SkateHost {
   skate_data::GameAssets::parse(&json).map_err(|e|e.to_string())
  }
  pub fn bully(root:&std::path::Path,geometry:&std::path::Path,spawn:[f32;3],heading:f32)->Result<Self,String>{
+  Self::bully_visible(root,geometry,spawn,heading,0)
+ }
+ pub fn bully_visible(root:&std::path::Path,geometry:&std::path::Path,spawn:[f32;3],heading:f32,phase:u32)->Result<Self,String>{
   let assets=Self::headless_assets(root)?;
   let graphs=graph_runtime::StockGraphs::load(root,&assets)?;
-  let map=bully_map::load(geometry,spawn,heading,0)?;
+  let map=bully_map::load_visible(geometry,spawn,heading,0,phase)?;
   let physics=physics::GamePhysics::load_with_difficulty(root,Some(&map),difficulty::Difficulty::Easy)?;
   let skater=physics::SkaterRuntime::load(root,&graphs,&physics,"easy")?;
   let controls=physics::PlayerControls::load(root)?;
   let camera=camera::CameraRuntime::load(root)?;
   let retarget=Some(retarget::Retarget::load(&geometry.with_file_name("jimmy-bind.json"),&skater)?);
   let marker=session_marker::SessionMarker::load(root)?;
-  Ok(Self{physics,skater,controls,graphs,camera,input:Default::default(),retarget,actors:Vec::new(),preferences:Default::default(),marker,geometry:Some(geometry.into()),area:0,vehicles:Vec::new(),interactions:Default::default(),actor_age:0.})
+  Ok(Self{physics,skater,controls,graphs,camera,input:Default::default(),retarget,actors:Vec::new(),preferences:Default::default(),marker,geometry:Some(geometry.into()),area:0,phase,vehicles:Vec::new(),interactions:Default::default(),actor_age:0.})
  }
  pub fn bone_names(&self)->&[String]{&self.skater.animation.evaluator.frames.bone_names}
  pub fn pose(&self)->&[skate_core::animation::output::NativeMatrix]{&self.skater.render_pose}
@@ -68,7 +72,12 @@ impl SkateHost {
    let mut n=[[0.;4];4];for(i,col)in r.to_cols_array_2d().iter().enumerate(){n[i][..3].copy_from_slice(col);}n[3][..3].copy_from_slice(&p.to_array());n
   }).collect()
  }
- pub fn native_pose(&self)->Option<[[f32;13];36]>{self.retarget.as_ref().map(|r|r.world_pose(&self.skater,self.interactions.hand))}
+ /// The stock possession owner selects left (0), right (1), or a loose board.
+ pub fn held_board_hand(&self)->Option<u32>{
+  let selected=self.skater.board_possession.state.selected_hand_424;
+  (self.skater.player_input.physical.off_board.flag_311!=0&&selected<2).then_some(selected)
+ }
+ pub fn native_pose(&self)->Option<[[f32;13];36]>{self.retarget.as_ref().map(|r|r.world_pose(&self.skater,&self.native_board_pose(),self.interactions.hand))}
  pub fn native_board_pose(&self)->[[f32;13];2]{
   use bevy::math::{Mat3,Vec3};let deck=self.physics.board.part_transforms()[6];
   let convert=|p:[f32;3]|Vec3::new(p[0],-p[2],p[1]);
@@ -96,10 +105,13 @@ impl SkateHost {
   self.skater.travel_to(transform)
  }
  pub fn select_area(&mut self,area:u32)->Result<(),String>{
-  if area==self.area{return Ok(())}
+  self.select_world(area,self.phase)
+ }
+ pub fn select_world(&mut self,area:u32,phase:u32)->Result<(),String>{
+  if area==self.area&&phase==self.phase{return Ok(())}
   let path=self.geometry.as_ref().ok_or("This host has no Bully area map")?;
-  let map=bully_map::load(path,self.position(),0.,area)?;
-  self.physics.replace_map(&map)?;self.area=area;self.actors.clear();self.marker.clear();
+  let map=bully_map::load_visible(path,self.position(),0.,area,phase)?;
+  self.physics.replace_map(&map)?;self.area=area;self.phase=phase;self.actors.clear();self.marker.clear();
   Ok(())
  }
  pub fn output(&self)->[f32;14]{
@@ -119,25 +131,44 @@ impl SkateHost {
   let controls=physics::PlayerControls::load(root)?;
   let camera=camera::CameraRuntime::load(root)?;
   let marker=session_marker::SessionMarker::load(root)?;
-  Ok(Self{physics,skater,controls,graphs,camera,input:Default::default(),retarget:None,actors:Vec::new(),preferences:Default::default(),marker,geometry:None,area:0,vehicles:Vec::new(),interactions:Default::default(),actor_age:0.})
+  Ok(Self{physics,skater,controls,graphs,camera,input:Default::default(),retarget:None,actors:Vec::new(),preferences:Default::default(),marker,geometry:None,area:0,phase:0,vehicles:Vec::new(),interactions:Default::default(),actor_age:0.})
  }
  pub fn configure(&mut self,preferences:SkaterPreferences){
-  self.physics.set_difficulty(if preferences.motorized{difficulty::Difficulty::Motorized}else{difficulty::Difficulty::Easy});
   self.physics.set_equipment_preferences(preferences.trucks,preferences.wheels);
   self.physics.set_gesture_preferences(Some(preferences.gestures));
   self.skater.animation.set_customisation(preferences.stance,preferences.style);
   self.skater.animation.motion.animation.posture.set_profile(preferences.posture);
   self.preferences=preferences;
  }
+ /// Switch the source's already-loaded mode profiles at the next tick. Keep
+ /// the active board, trick, animation and equipment rather than respawning.
+ pub fn configure_difficulty(&mut self,selected:u32)->Result<(),String>{
+  if selected>4{return Err("Invalid skating mode".into())}
+  let mode=[difficulty::Difficulty::Easy,difficulty::Difficulty::Normal,difficulty::Difficulty::Hardcore,difficulty::Difficulty::Motorized,difficulty::Difficulty::Easy][selected as usize];
+  self.physics.set_difficulty(mode);
+  self.physics.set_easy_motorized(selected==4);Ok(())
+ }
+ /// Select the stock graph's Low (0) or High (1) camera without resetting it.
+ pub fn configure_camera(&mut self,selected:u32)->Result<(),String>{
+  if selected>1{return Err("Invalid skating camera".into())}
+  self.camera.camera_type=selected;Ok(())
+ }
+ pub fn active_camera(&self)->u32{self.camera.camera_type}
+ pub fn camera_shot(&self)->&str{self.camera.selected_shot()}
+ pub fn active_difficulty(&self)->u32{self.physics.host_difficulty_index()}
  pub fn marker_status(&self)->(u32,u32,u32,f32){(self.marker.flags,self.marker.sets,self.marker.returns,self.marker.progress)}
  pub fn clear_marker(&mut self){self.marker.clear();}
  pub fn suspend_marker(&mut self){self.marker.suspend();}
- pub fn actors(&mut self,records:&[[f32;9]]){
+ pub fn actors(&mut self,records:&[[f32;7]]){
+  let sized:Vec<[f32;9]>=records.iter().map(|r|[r[0],r[1],r[2],r[3],r[4],r[5],r[6],1.56,0.28]).collect();
+  self.actors_sized(&sized)
+ }
+ pub fn actors_sized(&mut self,records:&[[f32;9]]){
   use skate_dynamics::rapier3d::prelude::Vector;
   self.actors.clear();self.actor_age=0.;
   for r in records.iter().take(24){
    if r.iter().any(|v|!v.is_finite())||r[0]<0.{continue}
-   self.actors.push(bully_actors::Actor::with_dimensions(r[0] as u64,Vector::new(r[1],r[3],-r[2]),Vector::new(r[4],r[6],-r[5]).clamp_length_max(15.),r[7],r[8]));
+   self.actors.push(bully_actors::Actor::new(r[0] as u64,Vector::new(r[1],r[3],-r[2]),Vector::new(r[4],r[6],-r[5]).clamp_length_max(15.),r[7],r[8]));
   }
  }
  pub fn vehicles(&mut self,records:&[[f32;16]]){self.vehicles=records.iter().take(8).filter_map(bully_vehicles::Vehicle::from_record).collect();}
@@ -171,5 +202,5 @@ impl SkateHost {
  /// Explicit initial velocity for offline host probes; ordinary gameplay uses
  /// the recovered state/force owners to produce every subsequent velocity.
  pub fn seed_velocity(&mut self,value:[f32;3]){for b in self.physics.board.bodies_mut(){b.rates.linear_velocity=skate_core::math::Vector3::new(value[0],value[1],value[2]);}}
- pub fn status(&self)->String{format!("ticks={} mode={} state={:?} contacts={} clip={:?} pose_bones={} rider_com={:?} held={} shove={} tow={:?} hits={}",self.physics.ticks,self.physics.difficulty_index(),self.skater.player_state.current(),self.physics.contact_count,self.skater.animation.motion.animation.current_name,self.skater.render_pose.len(),self.skater.skeleton.record.centre_of_mass,self.skater.player_input.physical.off_board.flag_311,self.skater.animation.motion.animation.channels.has("Shove"),self.interactions.tow,self.interactions.hits)}
+ pub fn status(&self)->String{format!("ticks={} state={:?} contacts={} clip={:?} pose_bones={} rider_com={:?} held={} shove={} tow={:?} hits={}",self.physics.ticks,self.skater.player_state.current(),self.physics.contact_count,self.skater.animation.motion.animation.current_name,self.skater.render_pose.len(),self.skater.skeleton.record.centre_of_mass,self.skater.player_input.physical.off_board.flag_311,self.skater.animation.motion.animation.channels.has("Shove"),self.interactions.tow,self.interactions.hits)}
 }

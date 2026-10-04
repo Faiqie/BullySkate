@@ -1,59 +1,51 @@
 # Controls
 
-DualShock 4 and DualSense work directly over USB or Bluetooth. The table below uses Xbox names; use these PlayStation equivalents. Native Bully controls apply when skate mode is off.
-
-| Xbox | PlayStation |
-|---|---|
-| A / B / X / Y | Cross / Circle / Square / Triangle |
-| LB / RB | L1 / R1 |
-| LT / RT | L2 / R2 |
-| View / Back | Touchpad click or Share/Create |
-| Start | Options |
-
-For example, **Touchpad + D-pad Left** enables skating, **Touchpad + D-pad Up** opens Edit Skater, and **L1 + D-pad Down** sets a marker.
+Xbox/XInput, DualShock 4 and DualSense controllers are supported. PlayStation equivalents are Cross/Circle/Square/Triangle for A/B/X/Y, L1/R1 for LB/RB, L2/R2 for LT/RT, R3 for right-stick click, and Options for Start.
 
 | Action | Controller | Keyboard |
 |---|---|---|
-| Toggle skate mode | View/Back + D-pad Left | F6 |
-| Toggle Bully / Skate | Click both sticks (L3 + R3) | F6 |
-| Return to native Bully | View/Back + D-pad Down | F5 |
-| Edit Skater / skating FOV menu | View/Back + D-pad Up | F8 |
+| Switch Skate / Bully | Right-stick click + D-pad Down | F6 |
+| Skate menu | Right-stick click + D-pad Left | F8 |
+| Debug camera / cancel | Right-stick click + D-pad Right | F11 |
+| Return to Bully | Switch while skating | F5 |
+| Bully pause menu, including while skating | Start / Options | Escape |
 | Steer / move | Left stick | WASD |
-| Push | A | Space |
-| Brake | B | S |
-| Flick-It tricks / ollies / flips / manuals | Right-stick gestures | Left Shift for a basic ollie; advanced stick gestures require a controller |
+| Push | A / Cross | Space |
+| Brake | B / Circle | S |
+| Tricks / ollies / flips / manuals | Right-stick gestures | Left Shift for an ollie |
 | Grab | LT / RT | Controller recommended |
-| Get off / get back on the board | Y | E |
-| Interact with Bully doors, shops or missions | Get off the board, then X / Square | Enter |
-| Swing held board on foot | Press RB while facing a nearby pedestrian | R |
-| Retrieve a dropped board | RB | R |
-| Skitch | Hold RB close behind a moving street car, matching its speed | Hold R |
-| Release skitch | Release RB, brake, dismount, or leave the ground | Release R / S / E |
-| Shift along the rear while skitching | Left stick | A / D |
-| Set session marker on supported ground | LB + D-pad Down | F7 |
-| Respawn at session marker | Hold LB + D-pad Up | Hold F10 |
-| Cancel pending respawn | Release D-pad Up | Release F10 |
-| Perform assigned gesture | Hold its D-pad direction without View/Back or LB | Controller |
-| Native pause | Start | Escape |
-| Reload mod scripts / return to native controls | â€” | F9 |
+| Get off / back on the board | Y / Triangle | E |
+| Swing held board | Press RB / R1 facing a nearby pedestrian | R |
+| Retrieve dropped board | RB / R1 | R |
+| Skitch | Hold RB / R1 close behind a moving car | Hold R |
+| Release skitch | Release RB / R1, brake, or dismount | Release R / S / E |
+| Shift while skitching | Left stick | A / D |
+| Set marker | LB / L1 + D-pad Down | F7 |
+| Respawn at marker | Hold LB / L1 + D-pad Up | Hold F10 |
+| Cancel respawn | Release D-pad Up | Release F10 |
+| Gesture | Hold D-pad direction without a shortcut modifier | Controller |
+| Reload scripts / return to Bully | - | F9 |
 
-Use the right stick for tricks and the triggers for grabs.
+Markers last for the game session and survive mode switches. They reset when the visible Bully area changes. Release the respawn combination to cancel its hold.
 
-Interaction hands control back to Bully so its normal prompts and animations work. Click both sticks to skate again. Switching modes skips the board mounting animation.
+In **Debug camera**, use the left stick to fly, right stick to look, LT/RT (L2/R2) to descend/ascend, RB/R1 to move faster and LB/L1 to move slower. **B/Circle teleports Jimmy to the camera position**; the opening shortcut cancels without moving him. Keyboard uses WASD, arrow keys, Space/Shift, Enter to teleport and Backspace to cancel. Open it while on foot or skating; pause still opens Bully's menu.
 
-Markers last for the game session and survive switching between Skate and Bully. They reset when the visible Bully area changes or the game session restarts. Set another marker after an area transition. Respawning requires a short hold that increases with distance; release cancels it. View/Back and LB reserve their D-pad combinations so they do not trigger gestures.
+## Skate menu
 
-## Menu
+Use D-pad Up/Down or the left stick to select, Left/Right to adjust, A/Cross to open, and B/Circle to go back. Keyboard uses arrows, Enter and Backspace. The opening shortcut or F8 also closes the menu.
 
-Motorized mode is available under Edit Skater and saves with your other settings.
+**Camera height** switches between Skate 3's High and Low cameras while playing. **Camera FOV** is on the main Skate menu, from 40 to 110 degrees. **Edit Skater** changes stance, trucks, wheels, style, posture and gestures. Settings save automatically.
 
-| Action | Controller | Keyboard |
-|---|---|---|
-| Select row | D-pad Up/Down or left stick | Up/Down |
-| Adjust selected value | D-pad Left/Right | Left/Right |
-| Open submenu | A | Enter |
-| Back | B | Backspace |
-| Close menu | View/Back + D-pad Up | F8 |
+**Difficulty** offers Easy, Normal, Hardcore, Motorized and Easy + Motorized. Changes apply while playing. Easy + Motorized keeps Easy's ollie height and trick assistance, with the powered board from Motorized.
 
-Edit Skater changes **Regular/Goofy**, truck tightness, wheel hardness, style (**Default, Loose, Gonzo, Aggressive**), posture (**Default, Stiff, Slouch, Buff**) and each D-pad gesture. Style/posture appear as the next movement animation starts. Camera/FOV adjusts the skating FOV from **40Â° to 110Â°**; the default is 67Â°. Changes save automatically. Reset Skater preserves FOV, while Reset FOV changes only FOV. Bully's native camera returns when skate mode ends.
+**Video** includes fullscreen/borderless/windowed, VSync, texture filtering, frame limit, text size and FPS counter. Display mode and VSync require restarting Bully; other options apply immediately. Use Bully's native Video menu for resolution.
 
+**Performance** settings apply while playing:
+
+- Texture detail: full, medium or low. Lower settings use smaller texture mip levels.
+- Nearby NPC/car collision counts, ranges and update rates: reduce the skating bridge's CPU work. The nearest objects are kept first; native NPC and traffic AI remain active.
+- Skating sounds: turn extra skating audio processing on or off.
+- Control help: show or hide the three controller shortcuts and debug-camera instructions. Also available on the main Skate menu.
+- Balanced / Low CPU presets and Restore defaults.
+
+Start with **Balanced** and compare the FPS counter in the same area. Lower collision settings reduce how far away the skating simulation considers NPCs and cars; lower texture detail softens world textures. FPS gains depend on the system and scene.

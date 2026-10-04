@@ -9,22 +9,30 @@ savedWeapon,savedBoard=nil,0
 boardOwned=false
 useFullSkate,usePhysicalBoard=true,true
 mountUntil,mountEvents,boardAnimation,animationUntil=0,0,"Idle",0
-hint,hintEnd="F6 Skate / F8 Edit Skater / F5 Bully",0
+hint,hintEnd="",0
+shortcutHeld=false
 pushUntil,ollieUntil,physicsNextLog=0,0,0
 actorUpdate,actorHistory=0,{}
 trafficUpdate,boardKeyUntil,hitSequence,towVehicle=0,0,0,4294967295
-boardRecoveryAt=0
 markerFlags,markerSets,markerReturns,markerProgress=0,0,0,0
 markerModifier,markerKeyUntil=false,0
 markerResetPending,markerResetAt=false,0
 function clamp(x,a,b) return math.max(a,math.min(b,x)) end
 function bit(b,n) return math.mod(math.floor(b/n),2)==1 end
+function ShortcutEdges(buttons,previous)
+ local held=bit(buttons,128);local old=bit(previous,128)
+ return held,held and bit(buttons,2) and not (old and bit(previous,2)),held and bit(buttons,4) and not (old and bit(previous,4)),held and bit(buttons,8) and not (old and bit(previous,8))
+end
 function say(s) hint=s;hintEnd=GetTimer()+5000;print(s) end
 function key(vk)
  local down,pressed=FS_Key(vk);local edge=pressed or (down and not oldKeys[vk]);oldKeys[vk]=down;return down,edge
 end
 LoadScript("editor.lua")
+LoadScript("audio.lua")
+LoadScript("debug_camera.lua")
 function restore(fast)
+ DebugCameraClose(false)
+ SkateAudioStop()
  mountUntil=0
  if physicalBoard then FS_SkateFree(physicalBoard);physicalBoard=nil end
  FS_View()
@@ -52,6 +60,7 @@ function restore(fast)
  savedWeapon=nil;savedBoard=0
 end
 function switch()
+ local switchStarted=GetTimer()
  local target=1
  if target==mode then target=0 end
  restore()
@@ -66,39 +75,54 @@ function switch()
  yaw=PedGetHeading(gPlayer);pitch=0;feet=hz;vz=0;grounded=true
  savedWeapon=PedGetWeapon(gPlayer);savedBoard=PedGetAmmoCount(gPlayer,437)
  print("Inventory captured "..tostring(savedWeapon).." board "..savedBoard)
- mode=target;PlayerSetControl(1);PedSetEffectedByGravity(gPlayer,false)
+ mode=target;PlayerSetControl(0);PedSetEffectedByGravity(gPlayer,false)
  if mode==1 then
   PlayerSetWeapon(437,savedBoard>0 and 0 or 1)
-  local ok=PedSetActionNode(gPlayer,"/Global/BullyMotion/Idle","Act/BullyMotion.act")
+  local readyUntil=GetTimer()+600
+  repeat Wait(0) until FS_BoardReady() or GetTimer()>=readyUntil
+  if not FS_BoardReady() then restore(true);say("Board equip did not finish; try again");return end
+  local ok=PedSetActionNode(gPlayer,"/Global/Vehicles/SkateBoard/Locomotion/BoardInHand/GetOn","Act/Vehicles.act")
+  print("Native board GetOn: "..tostring(ok))
   if not ok then restore();say("Board mount failed; Bully controls restored");return end
+  -- Keep the native mount's setup tracks, then take over as soon as its
+  -- actual board rig is ready. Fixed animation-length sleeps caused the lag.
+  local mountedAt=GetTimer();local mountedUntil=mountedAt+600
+  repeat Wait(0) until (GetTimer()-mountedAt>=80 and FS_BoardReady()) or GetTimer()>=mountedUntil
+  PedSetEffectedByGravity(gPlayer,false)
+  local coast="/Global/BullyMotion/Idle"
+  print("Coast idle "..tostring(PedSetActionNode(gPlayer,coast,"Act/BullyMotion.act")))
+  Wait(0)
+  print("Coast idle active "..tostring(PedIsPlaying(gPlayer,coast,true)))
   boardOwned=true
-  boardRecoveryAt=0
   if usePhysicalBoard then physicalBoard=FS_SkateNew(x,y,feet,yaw,AreaGetVisible()) end
   if not physicalBoard then restore();say("Skate mount failed; Bully controls restored");return end
   local physical,tow,hits=FS_SkateInteraction();hitSequence=hits
+  print("Skate transition ready in "..tostring(GetTimer()-switchStarted).." ms")
   say(PadText("A / Space push | Y / E off board | RB / R swing board or hold behind a car","Cross: push | Triangle: off board | R1: swing board / skitch"))
  end
 end
 function text(s,x,y,h,r,g,b)
- SetTextFont("Georgia");SetTextHeight(h or 0.022);SetTextPosition(x,y);SetTextAlign("LEFT","TOP")
+ SetTextFont("Arial");SetTextHeight(h or 0.022);SetTextPosition(x,y);SetTextAlign("LEFT","TOP")
  SetTextColor(r or 235,g or 225,b or 197,255);SetTextShadow();DrawText(s)
 end
 function updateActors(x,y,now)
  if now<actorUpdate then return end
- actorUpdate=now+50
+ actorUpdate=now+({50,100,150})[performanceOptions[4]+1]
+ local actorRange=({8,12,16})[performanceOptions[3]+1]
+ local actorBudget=({8,16,24})[performanceOptions[2]+1]
  local records,history,count,candidates={}, {},0,{};local ped
  for ped in AllPeds() do
   if ped~=gPlayer and PedIsValid(ped) then
    local px,py,pz=PedGetPosXYZ(ped)
    local distance=(px-x)^2+(py-y)^2
-   if distance<16^2 and math.abs(pz-feet)<4 and PedGetHealth(ped)>0 then
+   if distance<actorRange^2 and math.abs(pz-feet)<4 and PedGetHealth(ped)>0 then
     table.insert(candidates,{ped,px,py,pz,distance})
    end
   end
  end
  table.sort(candidates,function(a,b) return a[5]<b[5] end)
  local c
- for c=1,math.min(24,table.getn(candidates)) do
+ for c=1,math.min(actorBudget,table.getn(candidates)) do
     local entry=candidates[c];local ped,px,py,pz=entry[1],entry[2],entry[3],entry[4]
     local old=actorHistory[ped];local base,height,radius
     if old then base,height,radius=old[5],old[6],old[7] else base,height,radius=FS_PedBaseOffset(ped) end
@@ -117,9 +141,13 @@ function updateInteraction(now,x,y,z)
   if PedIsValid(ped) and PedGetHealth(ped)>0 then
    local px,py,pz=PedGetPosXYZ(ped)
    if (px-x)^2+(py-y)^2<3^2 and math.abs(pz-z)<3 then
-    local base,height=FS_PedBaseOffset(ped)
-    local blocked,hx,hy,hz,nx,ny,nz,hitPed=FS_Trace(x,y,z+0.8,px,py,pz-base+height*0.6)
-    if not blocked or hitPed==ped then
+    local base,height,radius=FS_PedBaseOffset(ped)
+    local chest=pz-base+height*0.6
+    local blocked,hx,hy,hz,nx,ny,nz,hitPed,hitModel=FS_Trace(x,y,z+0.95,px,py,chest)
+    -- Check the torso rather than the model's origin. Hits at the target's
+    -- own collision surface are valid; Jimmy's held board is not a wall.
+    local atTarget=blocked and ((hx-px)^2+(hy-py)^2)<(radius+0.2)^2
+    if not blocked or hitPed==ped or hitModel==437 or atTarget then
      PedApplyDamage(ped,25)
      if PedGetHealth(ped)>0 then PedSetActionNode(ped,"/Global/HitTree/Standing/Melee/Generic/Straight/HEADHEAVY3/Front/Front","Act/HitTree.act") end
     end
@@ -131,39 +159,17 @@ function updateInteraction(now,x,y,z)
   towVehicle=tow
  end
 end
-function recoverBoard(now)
- if now<boardRecoveryAt then return end
- boardRecoveryAt=now+200
- if PedGetWeapon(gPlayer)~=437 or not FS_BoardPresent() then
-  PlayerSetWeapon(437,PedGetAmmoCount(gPlayer,437)>0 and 0 or 1)
-  PedSetActionNode(gPlayer,"/Global/BullyMotion/Idle","Act/BullyMotion.act")
-  PedSetEffectedByGravity(gPlayer,false)
- elseif not PedIsPlaying(gPlayer,"/Global/BullyMotion/Idle",true) then
-  PedSetActionNode(gPlayer,"/Global/BullyMotion/Idle","Act/BullyMotion.act")
-  PedSetEffectedByGravity(gPlayer,false)
- end
-end
-function modeChord(buttons,previous)
- return bit(buttons,64) and bit(buttons,128) and not (bit(previous,64) and bit(previous,128))
-end
-function skateButtons(buttons,back)
- if back then return 0 end
- if bit(buttons,64) and bit(buttons,128) then return buttons-192 end
- return buttons
-end
-function interact()
- -- Native doors, shops and mission scripts own their animations and controls.
- -- Return control before delivering the same context action to those scripts.
- restore(true);FS_Interact();say("Bully interaction ready; click both sticks to skate again")
-end
 function drawing()
  while true do
   if FS_Active() and GetCutsceneRunning()==0 then
+   if not menu then EditorShortcuts() end
+   if debugCamera then DebugCameraDraw() end
+   if videoOptions and videoOptions[6]==1 and not menu then local ok,w,h,fps=FS_VideoStats();text(string.format("%.0f FPS",fps),0.04,0.175,0.017) end
    if mode==1 and markerModifier and not menu then
-    text(PadText("LB + Down: set marker | Hold LB + Up: respawn","L1 + Down: set marker | Hold L1 + Up: respawn"),0.04,0.095,0.017)
-    if markerProgress>0 then DrawRectangle(0.04,0.126,0.23*markerProgress,0.005,203,190,128,235) end
+    if not performanceOptions or performanceOptions[9]~=0 then text(PadText("LB + Down: set marker | Hold LB + Up: respawn","L1 + Down: set marker | Hold L1 + Up: respawn"),0.17,0.210,0.017) end
+    if markerProgress>0 then DrawRectangle(0.17,0.240,0.23*markerProgress,0.005,203,190,128,235) end
    end
-   if GetTimer()<hintEnd then text(hint,0.04,0.06,0.019) end
+   if GetTimer()<hintEnd and not debugCamera then text(hint,0.17,0.175,0.017) end
    if menu then
     EditorDraw()
    end
@@ -174,13 +180,13 @@ end
 function MissionSetup()
  while not SystemIsReady() do Wait(0) end
  if not FS_Available() then error("Unsupported Bully executable; native adapter disabled") end
- EditorLoad();FS_SkateReady();FS_RigDump()
+ EditorLoad();FS_SkateReady();FS_RigDump();SkateAudioLoad()
  LoadAnimationGroup("Skateboard");LoadActionTree("Act/Vehicles.act");LoadActionTree("Act/BullyMotion.act");LoadActionTree("Act/HitTree.act")
  RegisterLocalEventHandler("ControllerUpdating",function(controller)
-  if (mode==1 or menu) and FS_Active() then FS_MuteGameplay() end
+  if (mode==1 or menu or debugCamera or shortcutHeld) and FS_Active() then FS_MuteGameplay() end
  end)
- hintEnd=GetTimer()+10000;CreateDrawingThread(drawing)
- print("Bully Skate ready; F6 skating / F8 Edit Skater / F5 native Bully")
+ CreateDrawingThread(drawing)
+ print("Bully Skate ready; right stick click + D-pad Down: Skate / Bully; right stick click + D-pad Left: Skate menu")
 end
 function MissionCleanup() restore(true) end
 function main()
@@ -190,18 +196,22 @@ function main()
   local connected,buttons,lx,ly,rx,ry,lt,rt,kind=FS_Pad()
   if kind>0 then padKind=kind end
   local function pressed(n) return bit(buttons,n) and not bit(oldButtons,n) end
-  local back=bit(buttons,32)
+  local back,modeChord,menuChord,cameraChord=ShortcutEdges(buttons,oldButtons)
+  shortcutHeld=back
   local active=FS_Active()
   if not active then editorResumeAt=now+200 end
   markerModifier=bit(buttons,256)
   local _,normalKey=key(116);local _,skateKey=key(117);local _,menuKey=key(119);local _,reloadKey=key(120)
+  local _,cameraKey=key(122)
   if FS_Active() then
-   if normalKey or (back and pressed(2)) then restore();say("Bully controls restored")
-   elseif skateKey or (back and pressed(4)) or modeChord(buttons,oldButtons) then switch()
-   elseif menuKey or (back and pressed(1)) then EditorToggle()
+   if normalKey then restore();say("Bully controls restored")
+   elseif skateKey or modeChord then switch()
+   elseif menuKey or menuChord then DebugCameraClose(false);EditorToggle()
+   elseif cameraKey or cameraChord then DebugCameraToggle()
    elseif reloadKey then restore();StartScript("main.lua");TerminateCurrentScript() end
   end
   local area=AreaGetVisible()
+  if debugCamera and (GetCutsceneRunning()~=0 or not PedIsValid(gPlayer) or PedGetHealth(gPlayer)<=0 or debugCamera.area~=area) then DebugCameraClose(false) end
   if lastArea~=area then markerResetPending=true;markerResetAt=0;markerFlags=0;markerProgress=0;markerKeyUntil=0 end
   if mode==1 and (GetCutsceneRunning()~=0 or not PedIsValid(gPlayer) or PedGetHealth(gPlayer)<=0 or lastArea~=area) then restore();say("Bully controls restored for game event") end
   lastArea=area
@@ -211,21 +221,17 @@ function main()
    if status==3 or (status==2 and FS_SkateMarkerReset()) then markerResetPending=false end
   end
   EditorSync(now)
-  if mode==1 and physicalBoard and active and not menu then
-   local state=FS_SkateInteraction()
-   local _,interactionKey=key(13)
-   if interactionKey or (state>=500 and state<600 and pressed(16384)) then interact() end
-  end
-  if menu and FS_Active() then
+  if not active or menu or debugCamera then SkateAudioStop() end
+  if debugCamera and active then
+   DebugCameraUpdate(now,dt,buttons,lx,ly,rx,ry,lt,rt,pressed)
+  elseif menu and FS_Active() then
    EditorInput(now,buttons,lx,ly,pressed,back)
   elseif mode==1 and physicalBoard and FS_Active() and dt>0 then
    local x,y,z=PlayerGetPosXYZ()
    if math.abs(z-feet-0.98)>4 then restore();say("Bully controls restored after teleport")
    else
-    recoverBoard(now)
-    if pressed(512) then actorUpdate=0 end
     updateActors(x,y,now)
-    if now>=trafficUpdate then trafficUpdate=now+50;FS_SkateVehicles(physicalBoard,x,y,z) end
+    if now>=trafficUpdate then trafficUpdate=now+({33,50,100})[performanceOptions[7]+1];FS_SkateVehicles(physicalBoard,x,y,z) end
     local forward,right=ly,lx
     local kw,ew=key(87);local ks,es=key(83);local kd,ed=key(68);local ka,ea=key(65)
     if IsKeyPressed("W") or kw or ew then forward=forward+1 end;if IsKeyPressed("S") or ks or es then forward=forward-1 end
@@ -235,7 +241,7 @@ function main()
     if spaceEdge then pushUntil=now+80 end
     local push=bit(buttons,4096) or IsKeyPressed("SPACE") or spaceDown or now<pushUntil
     local brake=bit(buttons,8192) or IsKeyPressed("S") or ks or es
-    local mapped=skateButtons(buttons,back)
+    local mapped=back and 0 or buttons
     local _,boardEdge=key(69);local grabDown=key(82)
     if boardEdge then boardKeyUntil=now+80 end
     if now<boardKeyUntil and not bit(mapped,32768) then mapped=mapped+32768 end
@@ -260,6 +266,8 @@ function main()
      local hasRoot,rootX,rootY,rootZ=FS_SkateRoot(physicalBoard)
      if hasRoot then x,y,feet=rootX,rootY,rootZ else x,y=bx,by end
      PedSetPosSimple(gPlayer,x,y,feet);PedFaceHeading(gPlayer,yaw*180/math.pi,0)
+     local audioState=FS_SkateInteraction()
+     if performanceOptions[8]==1 then SkateAudioUpdate(now,x,y,feet,audioState,groundContacts or 0,speed,bvz) end
      updateInteraction(now,x,y,feet)
      FS_Bank(yaw,bankPitch,bankRoll)
      local hasCamera,cx,cy,cz,fx,fy,fz,lens=FS_SkateCamera(physicalBoard)

@@ -5,9 +5,14 @@ $taskRoot=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 & (Join-Path $PSScriptRoot 'Build.ps1') -Python $Python
 & (Join-Path $PSScriptRoot 'TestNativeCompatibilityGuard.ps1')
 & (Join-Path $PSScriptRoot 'TestControllerInput.ps1')
-& (Join-Path $PSScriptRoot 'TestGameplay.cmd')
-if($LASTEXITCODE){throw 'Gameplay regression tests failed.'}
+& (Join-Path $PSScriptRoot 'TestPauseInput.cmd')
+if($LASTEXITCODE){throw 'Native pause input tests failed.'}
+& (Join-Path $PSScriptRoot 'TestVideoSettings.cmd')
+if($LASTEXITCODE){throw 'Video and performance settings tests failed.'}
+& (Join-Path $PSScriptRoot 'TestSkaterSettings.cmd')
+if($LASTEXITCODE){throw 'Skater settings migration and difficulty tests failed.'}
 & (Join-Path $PSScriptRoot 'BuildWorker.ps1')
+& (Join-Path $PSScriptRoot 'BuildAudioWorker.ps1')
 & (Join-Path $PSScriptRoot 'BuildExtractor.ps1') -Python $Python
 & (Join-Path $PSScriptRoot 'BuildLauncher.ps1') -Python $Python
 & (Join-Path $PSScriptRoot 'TestLauncherDisplay.ps1')
